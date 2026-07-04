@@ -92,14 +92,6 @@ jobs:
           url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
-      - name: Apply Supabase migrations
-        uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
-      - name: Push DB schema
-        run: supabase db push --db-url "${{ secrets.SUPABASE_DB_URL }}"
-
       - name: Set Telegram webhook
         run: |
           curl -s "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/setWebhook?url=${{ steps.deploy.outputs.url }}/api/telegram"
