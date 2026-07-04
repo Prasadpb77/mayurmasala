@@ -3,16 +3,28 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import DataTable from "@/components/DataTable";
 import { inr } from "@/lib/finance";
+import { X } from "lucide-react";
 
 type Txn = "sale" | "purchase" | "expense";
 
+type Row = {
+  id?: number;
+  txn_date: string;
+  type: string;
+  amount: number;
+  category: string | null;
+  description: string | null;
+  source: string;
+};
+
 export default function TxnPage({ type, title }: { type: Txn; title: string }) {
   const supabase = createClient();
-  const [rows, setRows] = useState<any[]>([]);
+  const [rows, setRows] = useState<Row[]>([]);
   const [range, setRange] = useState<"month" | "year" | "fy" | "all">("month");
   const [form, setForm] = useState({ amount: "", category: "", description: "", txn_date: new Date().toISOString().slice(0, 10) });
   const [saving, setSaving] = useState(false);
   const [total, setTotal] = useState(0);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   function rangeStart() {
     const now = new Date();
@@ -36,11 +48,27 @@ export default function TxnPage({ type, title }: { type: Txn; title: string }) {
 
   useEffect(() => { load(); }, [range]);
 
+  function resetForm() {
+    setForm({ amount: "", category: "", description: "", txn_date: new Date().toISOString().slice(0, 10) });
+    setEditingId(null);
+  }
+
+  function startEdit(row: Row) {
+    setForm({
+      amount: String(row.amount),
+      category: row.category || "",
+      description: row.description || "",
+      txn_date: row.txn_date,
+    });
+    setEditingId(row.id ?? null);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from("transactions").insert({
+
+    const payload = {
       type,
       amount: Number(form.amount),
       category: form.category || null,
@@ -48,9 +76,22 @@ export default function TxnPage({ type, title }: { type: Txn; title: string }) {
       txn_date: form.txn_date,
       source: "web",
       created_by: user?.id,
-    });
-    setForm({ amount: "", category: "", description: "", txn_date: new Date().toISOString().slice(0, 10) });
+    };
+
+    if (editingId) {
+      await supabase.from("transactions").update(payload).eq("id", editingId);
+    } else {
+      await supabase.from("transactions").insert(payload);
+    }
+
+    resetForm();
     setSaving(false);
+    load();
+  }
+
+  async function handleDelete(row: Row) {
+    if (!confirm(`Delete this ${type} of ${inr(row.amount)}?`)) return;
+    await supabase.from("transactions").delete().eq("id", row.id);
     load();
   }
 
@@ -58,7 +99,7 @@ export default function TxnPage({ type, title }: { type: Txn; title: string }) {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-bold capitalize">{title}</h1>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {(["month", "year", "fy", "all"] as const).map((r) => (
             <button
               key={r}
@@ -75,7 +116,14 @@ export default function TxnPage({ type, title }: { type: Txn; title: string }) {
 
       <div className="grid md:grid-cols-3 gap-6">
         <form onSubmit={handleSubmit} className="card p-5 space-y-3 md:col-span-1">
-          <h3 className="font-semibold">Add {title.slice(0, -1)}</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold">{editingId ? "Edit" : "Add"} {title.slice(0, -1)}</h3>
+            {editingId && (
+              <button type="button" onClick={resetForm} className="text-masala-brown/50 hover:text-masala-red p-1">
+                <X size={18} />
+              </button>
+            )}
+          </div>
           <div>
             <label className="text-sm font-medium">Amount (₹)</label>
             <input className="input mt-1" type="number" required min="0" step="0.01"
@@ -97,7 +145,7 @@ export default function TxnPage({ type, title }: { type: Txn; title: string }) {
               onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </div>
           <button className="btn-primary w-full" disabled={saving}>
-            {saving ? "Saving..." : `Add ${title.slice(0, -1)}`}
+            {saving ? "Saving..." : editingId ? `Update ${title.slice(0, -1)}` : `Add ${title.slice(0, -1)}`}
           </button>
         </form>
 
@@ -108,7 +156,12 @@ export default function TxnPage({ type, title }: { type: Txn; title: string }) {
             </p>
             <p className="text-3xl font-bold mt-1">{inr(total)}</p>
           </div>
-          <DataTable rows={rows} title={`${title} — ${rows.length} entries`} />
+          <DataTable
+            rows={rows}
+            title={`${title} — ${rows.length} entries`}
+            onEdit={startEdit}
+            onDelete={handleDelete}
+          />
         </div>
       </div>
     </div>

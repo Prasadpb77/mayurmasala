@@ -60,7 +60,7 @@ export default async function DashboardPage() {
   return (
     <div className="flex">
       <Nav />
-      <main className="flex-1 p-6 space-y-6">
+      <main className="flex-1 p-6 pt-20 md:pt-6 pb-20 md:pb-6 space-y-6">
         <div>
           <h1 className="text-2xl font-bold">Overview</h1>
           <p className="text-masala-brown/60 text-sm">Financial year {fy}</p>
