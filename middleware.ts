@@ -15,7 +15,9 @@ export async function middleware(req: NextRequest) {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  // Use getSession() instead of getUser() — reads cookie locally, no network call
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
   const isAuthPage = req.nextUrl.pathname.startsWith("/login");
   const isApi = req.nextUrl.pathname.startsWith("/api");
 
@@ -29,5 +31,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/dashboard/:path*", "/sales/:path*", "/purchases/:path*", "/expenses/:path*", "/login/:path*"],
 };

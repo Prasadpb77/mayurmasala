@@ -6,6 +6,7 @@ import DataTable from "@/components/DataTable";
 import TrendChart from "@/components/TrendChart";
 import { currentFinYear } from "@/lib/finance";
 import { TrendingUp, TrendingDown, Wallet, PiggyBank } from "lucide-react";
+import QuickAdd from "@/components/QuickAdd";
 
 export const dynamic = "force-dynamic";
 
@@ -76,6 +77,7 @@ export default async function DashboardPage() {
         <TrendChart data={chartData as any} />
 
         <DataTable rows={(recent || []) as any} title="Recent transactions" />
+        <QuickAdd />
       </main>
     </div>
   );

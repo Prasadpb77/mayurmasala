@@ -1,5 +1,6 @@
 import Nav from "@/components/Nav";
 import TxnPage from "@/components/TxnPage";
+import QuickAdd from "@/components/QuickAdd";
 
 export default function PurchasesPage() {
   return (
@@ -7,6 +8,7 @@ export default function PurchasesPage() {
       <Nav />
       <main className="flex-1 p-6 pt-20 md:pt-6 pb-20 md:pb-6">
         <TxnPage type="purchase" title="Purchases" />
+        <QuickAdd />
       </main>
     </div>
   );
