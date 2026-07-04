@@ -16,7 +16,7 @@ variable "vercel_api_token" {
   sensitive = true
 }
 variable "github_repo" {
-  type = string # e.g. "yourname/mayur-masala"
+  type = string # e.g. "yourname/mayurmasala"
 }
 variable "supabase_access_token" {
   type      = string
