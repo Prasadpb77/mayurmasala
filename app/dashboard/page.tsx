@@ -19,8 +19,9 @@ async function sumWhere(supabase: any, type: string, gteDate?: string) {
 
 export default async function DashboardPage() {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  // Use getSession() instead of getUser() — reads cookie locally, no network call
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) redirect("/login");
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);

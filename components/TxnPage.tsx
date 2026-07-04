@@ -21,7 +21,7 @@ export default function TxnPage({ type, title }: { type: Txn; title: string }) {
   const supabase = createClient();
   const [rows, setRows] = useState<Row[]>([]);
   const [range, setRange] = useState<"month" | "year" | "fy" | "all">("month");
-  const [form, setForm] = useState({ amount: "", category: "", description: "", txn_date: new Date().toISOString().slice(0, 10) });
+  const [form, setForm] = useState({ amount: "", category: "", txn_date: new Date().toISOString().slice(0, 10) });
   const [saving, setSaving] = useState(false);
   const [total, setTotal] = useState(0);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -49,7 +49,7 @@ export default function TxnPage({ type, title }: { type: Txn; title: string }) {
   useEffect(() => { load(); }, [range]);
 
   function resetForm() {
-    setForm({ amount: "", category: "", description: "", txn_date: new Date().toISOString().slice(0, 10) });
+    setForm({ amount: "", category: "", txn_date: new Date().toISOString().slice(0, 10) });
     setEditingId(null);
   }
 
@@ -57,7 +57,6 @@ export default function TxnPage({ type, title }: { type: Txn; title: string }) {
     setForm({
       amount: String(row.amount),
       category: row.category || "",
-      description: row.description || "",
       txn_date: row.txn_date,
     });
     setEditingId(row.id ?? null);
@@ -72,7 +71,6 @@ export default function TxnPage({ type, title }: { type: Txn; title: string }) {
       type,
       amount: Number(form.amount),
       category: form.category || null,
-      description: form.description || null,
       txn_date: form.txn_date,
       source: "web",
       created_by: user?.id,
@@ -138,11 +136,6 @@ export default function TxnPage({ type, title }: { type: Txn; title: string }) {
             <label className="text-sm font-medium">Category</label>
             <input className="input mt-1" placeholder="e.g. Garam Masala, Rent..."
               value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
-          </div>
-          <div>
-            <label className="text-sm font-medium">Description</label>
-            <input className="input mt-1" value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </div>
           <button className="btn-primary w-full" disabled={saving}>
             {saving ? "Saving..." : editingId ? `Update ${title.slice(0, -1)}` : `Add ${title.slice(0, -1)}`}
