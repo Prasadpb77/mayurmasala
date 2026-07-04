@@ -31,7 +31,7 @@ variable "supabase_db_password" {
 }
 variable "project_name" {
   type    = string
-  default = "mayur-masala"
+  default = "mayurmasala"
 }
 variable "region" {
   type    = string
