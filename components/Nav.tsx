@@ -2,14 +2,13 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { LayoutGrid, ShoppingCart, PackagePlus, Receipt, LogOut, Menu, X, CalendarCheck, LineChart, HandCoins, Users, UserCheck } from "lucide-react";
+import { LayoutGrid, ShoppingCart, Receipt, LogOut, Menu, X, CalendarCheck, LineChart, HandCoins, Users, UserCheck } from "lucide-react";
 import clsx from "clsx";
 import { useState } from "react";
 
 const links = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
   { href: "/sales", label: "Sales", icon: ShoppingCart },
-  { href: "/purchases", label: "Purchases", icon: PackagePlus },
   { href: "/expenses", label: "Expenses", icon: Receipt },
   { href: "/attendance", label: "Attendance", icon: CalendarCheck },
   { href: "/profit-loss", label: "P&L", icon: LineChart },

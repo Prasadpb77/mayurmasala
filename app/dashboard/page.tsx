@@ -37,12 +37,20 @@ export default function DashboardPage() {
       return (data || []).reduce((s: number, r: any) => s + Number(r.amount), 0);
     }
 
+    // Get purchase vendors total for the period
+    async function getPurchaseVendorsTotal(gteDate?: string) {
+      let q = supabase.from("purchase_vendors").select("amount");
+      if (gteDate) q = q.gte("date", gteDate);
+      const { data } = await q;
+      return (data || []).reduce((s: number, r: any) => s + Number(r.amount), 0);
+    }
+
     const [monthSale, monthPurchase, monthExpense, fySale, fyPurchase, fyExpense, recentRes, monthlyRes] = await Promise.all([
       sumWhere("sale", monthStart),
-      sumWhere("purchase", monthStart),
+      getPurchaseVendorsTotal(monthStart),
       sumWhere("expense", monthStart),
       sumWhere("sale", fyStart),
-      sumWhere("purchase", fyStart),
+      getPurchaseVendorsTotal(fyStart),
       sumWhere("expense", fyStart),
       supabase.from("transactions").select("txn_date,type,amount,category,description,source").order("txn_date", { ascending: false }).order("created_at", { ascending: false }).limit(15),
       supabase.from("v_monthly_summary").select("*").order("period", { ascending: true }).limit(36),
