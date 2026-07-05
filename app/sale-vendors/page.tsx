@@ -39,6 +39,17 @@ export default function SaleVendorsPage() {
   const [lastEntry, setLastEntry] = useState<VendorRow | null>(null);
   const [showWhatsAppPrompt, setShowWhatsAppPrompt] = useState(false);
 
+  // Auto-fill remaining balance when vendor name changes
+  useEffect(() => {
+    if (form.vendor_name && rows.length > 0) {
+      const vendorRows = rows.filter(r => r.vendor_name === form.vendor_name);
+      const total = vendorRows.reduce((sum, r) => sum + r.amount, 0);
+      const paid = vendorRows.reduce((sum, r) => sum + r.paid_amount, 0);
+      const remaining = total - paid;
+      // This remaining balance can be displayed in the UI
+    }
+  }, [form.vendor_name, rows]);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session?.user) return router.replace("/login");
@@ -306,6 +317,22 @@ export default function SaleVendorsPage() {
                   <input className="input mt-1" type="number" required min="0" step="0.01" placeholder="0.00"
                     value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
                 </div>
+
+                {form.vendor_name && (() => {
+                  const vendorRows = rows.filter(r => r.vendor_name === form.vendor_name);
+                  const total = vendorRows.reduce((sum, r) => sum + r.amount, 0);
+                  const paid = vendorRows.reduce((sum, r) => sum + r.paid_amount, 0);
+                  const remaining = total - paid;
+                  if (remaining > 0) {
+                    return (
+                      <div className="p-3 bg-masala-red/5 border border-masala-red/20 rounded-lg">
+                        <p className="text-xs text-masala-brown/60">Previous Balance</p>
+                        <p className="text-lg font-bold text-masala-red">₹{remaining.toLocaleString("en-IN")}</p>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
 
                 <div>
                   <label className="text-sm font-medium">Status</label>
