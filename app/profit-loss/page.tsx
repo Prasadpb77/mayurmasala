@@ -23,30 +23,49 @@ function NetTable({ title, rows, formatPeriod }: { title: string; rows: Row[]; f
   return (
     <div className="card p-4 md:p-5">
       <h3 className="font-semibold mb-3">{title}</h3>
-      <div className="overflow-x-auto">
+      {/* Mobile: card list */}
+      <div className="sm:hidden space-y-2">
+        {rows.length === 0 && <p className="text-center text-masala-brown/50 py-4 text-sm">No data yet.</p>}
+        {rows.map((r) => {
+          const net = r.sale - r.purchase - r.expense;
+          return (
+            <div key={r.period} className="flex items-center justify-between py-2 border-b border-masala-brown/10 last:border-0">
+              <div>
+                <p className="text-sm font-medium">{formatPeriod(r.period)}</p>
+                <p className="text-xs text-masala-brown/50">Sales: {inr(r.sale)}</p>
+              </div>
+              <p className={`text-sm font-semibold ${net >= 0 ? "text-green-600" : "text-masala-red"}`}>
+                {net >= 0 ? "▲" : "▼"}{inr(net)}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+      {/* Desktop: table */}
+      <div className="hidden sm:block overflow-x-auto">
         <table className="data-table w-full">
           <thead>
             <tr>
-              <th className="px-2 md:px-3 whitespace-nowrap">Period</th>
-              <th className="px-2 md:px-3 text-right whitespace-nowrap">Sales</th>
-              <th className="hidden sm:table-cell px-2 md:px-3 text-right whitespace-nowrap">Purchases</th>
-              <th className="hidden sm:table-cell px-2 md:px-3 text-right whitespace-nowrap">Expenses</th>
-              <th className="px-2 md:px-3 text-right whitespace-nowrap">Net</th>
+              <th className="px-3 whitespace-nowrap">Period</th>
+              <th className="px-3 text-right whitespace-nowrap">Sales</th>
+              <th className="px-3 text-right whitespace-nowrap">Purchases</th>
+              <th className="px-3 text-right whitespace-nowrap">Expenses</th>
+              <th className="px-3 text-right whitespace-nowrap">Net</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
-              <tr><td colSpan={5} className="text-center text-masala-brown/50 py-6 px-2">No data yet.</td></tr>
+              <tr><td colSpan={5} className="text-center text-masala-brown/50 py-6 px-3">No data yet.</td></tr>
             )}
             {rows.map((r) => {
               const net = r.sale - r.purchase - r.expense;
               return (
                 <tr key={r.period}>
-                  <td className="px-2 md:px-3 whitespace-nowrap text-sm">{formatPeriod(r.period)}</td>
-                  <td className="px-2 md:px-3 text-right whitespace-nowrap text-sm">{inr(r.sale)}</td>
-                  <td className="hidden sm:table-cell px-2 md:px-3 text-right whitespace-nowrap text-sm">{inr(r.purchase)}</td>
-                  <td className="hidden sm:table-cell px-2 md:px-3 text-right whitespace-nowrap text-sm">{inr(r.expense)}</td>
-                  <td className={`px-2 md:px-3 text-right whitespace-nowrap text-sm font-semibold ${net >= 0 ? "text-green-600" : "text-masala-red"}`}>
+                  <td className="px-3 whitespace-nowrap text-sm">{formatPeriod(r.period)}</td>
+                  <td className="px-3 text-right whitespace-nowrap text-sm">{inr(r.sale)}</td>
+                  <td className="px-3 text-right whitespace-nowrap text-sm">{inr(r.purchase)}</td>
+                  <td className="px-3 text-right whitespace-nowrap text-sm">{inr(r.expense)}</td>
+                  <td className={`px-3 text-right whitespace-nowrap text-sm font-semibold ${net >= 0 ? "text-green-600" : "text-masala-red"}`}>
                     {net >= 0 ? "▲" : "▼"}{inr(net)}
                   </td>
                 </tr>
