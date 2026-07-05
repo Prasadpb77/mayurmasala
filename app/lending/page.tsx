@@ -46,6 +46,19 @@ export default function LendingPage() {
   const [lastEntry, setLastEntry] = useState<LendingRow | null>(null);
   const [showWhatsAppPrompt, setShowWhatsAppPrompt] = useState(false);
 
+  // Auto-fill person details when name changes
+  useEffect(() => {
+    if (form.person_name && rows.length > 0) {
+      const existingPerson = rows.find(r => r.person_name === form.person_name);
+      if (existingPerson) {
+        setForm(prev => ({
+          ...prev,
+          whatsapp_number: existingPerson.whatsapp_number || prev.whatsapp_number,
+        }));
+      }
+    }
+  }, [form.person_name, rows]);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session?.user) return router.replace("/login");
@@ -330,6 +343,22 @@ export default function LendingPage() {
                   <input className="input mt-1" type="number" required min="0" step="0.01" placeholder="0.00"
                     value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
                 </div>
+
+                {form.person_name && (() => {
+                  const personRows = rows.filter(r => r.person_name === form.person_name);
+                  const totalLent = personRows.filter(r => r.type === "lend").reduce((sum, r) => sum + r.amount, 0);
+                  const totalSettled = personRows.filter(r => r.type === "settle").reduce((sum, r) => sum + r.amount, 0);
+                  const remaining = totalLent - totalSettled;
+                  if (remaining > 0) {
+                    return (
+                      <div className="p-3 bg-masala-red/5 border border-masala-red/20 rounded-lg">
+                        <p className="text-xs text-masala-brown/60">Previous Balance</p>
+                        <p className="text-lg font-bold text-masala-red">₹{remaining.toLocaleString("en-IN")}</p>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
 
                 <div>
                   <label className="text-sm font-medium">Date</label>
