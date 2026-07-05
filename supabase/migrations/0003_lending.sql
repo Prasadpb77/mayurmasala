@@ -2,6 +2,7 @@
 create table if not exists lending (
   id uuid primary key default gen_random_uuid(),
   person_name text not null,
+  whatsapp_number text,
   amount numeric(12,2) not null check (amount > 0),
   type text not null check (type in ('lend', 'settle')),
   date date not null default current_date,

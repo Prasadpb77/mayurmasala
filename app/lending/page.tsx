@@ -4,11 +4,12 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Nav from "@/components/Nav";
 import { inr } from "@/lib/finance";
-import { Plus, X, HandCoins, ArrowLeftRight, Clock } from "lucide-react";
+import { Plus, X, HandCoins, ArrowLeftRight, Clock, MessageCircle, Check } from "lucide-react";
 
 type LendingRow = {
   id: string;
   person_name: string;
+  whatsapp_number: string | null;
   amount: number;
   type: "lend" | "settle";
   date: string;
@@ -17,6 +18,7 @@ type LendingRow = {
 
 type PersonSummary = {
   name: string;
+  whatsapp_number: string | null;
   totalLent: number;
   totalSettled: number;
   remaining: number;
@@ -29,9 +31,10 @@ export default function LendingPage() {
   const router = useRouter();
   const [rows, setRows] = useState<LendingRow[]>([]);
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ person_name: "", amount: "", type: "lend" as "lend" | "settle", date: new Date().toISOString().slice(0, 10) });
+  const [form, setForm] = useState({ person_name: "", whatsapp_number: "", amount: "", type: "lend" as "lend" | "settle", date: new Date().toISOString().slice(0, 10) });
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [lastEntry, setLastEntry] = useState<{ person_name: string; whatsapp_number: string | null; amount: number; type: string; remaining: number } | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -51,23 +54,51 @@ export default function LendingPage() {
     if (!form.person_name || !form.amount) return;
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
+
+    // Calculate remaining before insert
+    const personEntries = rows.filter(r => r.person_name === form.person_name);
+    const currentRemaining = personEntries.reduce((sum, r) => {
+      return sum + (r.type === "lend" ? r.amount : -r.amount);
+    }, 0);
+    const newRemaining = currentRemaining + (form.type === "lend" ? Number(form.amount) : -Number(form.amount));
+
     await supabase.from("lending").insert({
       person_name: form.person_name.trim(),
+      whatsapp_number: form.whatsapp_number.trim() || null,
       amount: Number(form.amount),
       type: form.type,
       date: form.date,
       created_by: user?.id,
     });
-    setForm({ person_name: "", amount: "", type: "lend", date: new Date().toISOString().slice(0, 10) });
+
+    setLastEntry({
+      person_name: form.person_name.trim(),
+      whatsapp_number: form.whatsapp_number.trim() || null,
+      amount: Number(form.amount),
+      type: form.type,
+      remaining: newRemaining,
+    });
+
+    setForm({ person_name: "", whatsapp_number: "", amount: "", type: "lend", date: new Date().toISOString().slice(0, 10) });
     setSaving(false);
-    setShowAdd(false);
     load();
   }
 
+  // Auto-populate WhatsApp number when person name changes
+  function handlePersonNameChange(name: string) {
+    setForm({ ...form, person_name: name });
+    const existing = rows.find(r => r.person_name === name && r.whatsapp_number);
+    if (existing) {
+      setForm(prev => ({ ...prev, person_name: name, whatsapp_number: existing.whatsapp_number || "" }));
+    } else {
+      setForm(prev => ({ ...prev, person_name: name, whatsapp_number: prev.whatsapp_number }));
+    }
+  }
+
   // Compute per-person summary
-  const personMap = new Map<string, { totalLent: number; totalSettled: number; firstDate: string }>();
+  const personMap = new Map<string, { whatsapp_number: string | null; totalLent: number; totalSettled: number; firstDate: string }>();
   rows.forEach((r) => {
-    const p = personMap.get(r.person_name) || { totalLent: 0, totalSettled: 0, firstDate: r.date };
+    const p = personMap.get(r.person_name) || { whatsapp_number: r.whatsapp_number, totalLent: 0, totalSettled: 0, firstDate: r.date };
     if (r.type === "lend") p.totalLent += r.amount;
     else p.totalSettled += r.amount;
     if (r.date < p.firstDate) p.firstDate = r.date;
@@ -81,6 +112,7 @@ export default function LendingPage() {
     const daysSince = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     return {
       name,
+      whatsapp_number: data.whatsapp_number,
       totalLent: data.totalLent,
       totalSettled: data.totalSettled,
       remaining: data.totalLent - data.totalSettled,
@@ -90,6 +122,15 @@ export default function LendingPage() {
   }).sort((a, b) => b.remaining - a.remaining);
 
   const uniqueNames = Array.from(new Set(rows.map((r) => r.person_name))).sort();
+
+  function sendWhatsApp(entry: { person_name: string; whatsapp_number: string | null; amount: number; type: string; remaining: number }) {
+    if (!entry.whatsapp_number) return;
+    const phone = entry.whatsapp_number.replace(/\D/g, "");
+    const actionText = entry.type === "lend" ? "Lent" : "Settled";
+    const message = `Hi ${entry.person_name}, this is regarding your ${actionText.toLowerCase()} of ₹${entry.amount.toLocaleString("en-IN")} dated ${new Date().toLocaleDateString("en-IN")}. Your remaining balance is ₹${entry.remaining.toLocaleString("en-IN")}.`;
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank");
+  }
 
   if (loading) return <div className="flex items-center justify-center min-h-screen"><p className="text-masala-brown/50">Loading...</p></div>;
 
@@ -146,7 +187,7 @@ export default function LendingPage() {
                       className="input"
                       list="person-list"
                       value={form.person_name}
-                      onChange={(e) => setForm({ ...form, person_name: e.target.value })}
+                      onChange={(e) => handlePersonNameChange(e.target.value)}
                       required
                       placeholder="Enter or select name"
                     />
@@ -154,6 +195,13 @@ export default function LendingPage() {
                       {uniqueNames.map((n) => <option key={n} value={n} />)}
                     </datalist>
                   </div>
+                </div>
+
+                {/* WhatsApp number */}
+                <div>
+                  <label className="text-sm font-medium">WhatsApp Number (optional)</label>
+                  <input className="input mt-1" type="tel" placeholder="e.g. 9876543210"
+                    value={form.whatsapp_number} onChange={(e) => setForm({ ...form, whatsapp_number: e.target.value })} />
                 </div>
 
                 <div>
@@ -174,6 +222,30 @@ export default function LendingPage() {
           </div>
         )}
 
+        {/* WhatsApp notification after adding entry */}
+        {lastEntry && lastEntry.whatsapp_number && (
+          <div className="card p-4 border-2 border-green-200 bg-green-50/50">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                <Check size={20} className="text-green-700" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-green-900 mb-1">Entry added successfully!</h3>
+                <p className="text-sm text-green-700 mb-3">
+                  {lastEntry.type === "lend" ? "Lent" : "Settled"} ₹{lastEntry.amount.toLocaleString("en-IN")} to {lastEntry.person_name}
+                  {lastEntry.remaining !== 0 && ` • Remaining: ₹${lastEntry.remaining.toLocaleString("en-IN")}`}
+                </p>
+                <button
+                  onClick={() => sendWhatsApp(lastEntry)}
+                  className="btn-primary bg-green-600 hover:bg-green-700 flex items-center gap-2"
+                >
+                  <MessageCircle size={18} /> Send WhatsApp Message
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Summary cards */}
         {summaries.length > 0 && (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -184,7 +256,12 @@ export default function LendingPage() {
                     <div className="w-9 h-9 rounded-full bg-masala-gradient flex items-center justify-center text-masala-gold font-bold text-sm">
                       {s.name[0].toUpperCase()}
                     </div>
-                    <p className="font-semibold">{s.name}</p>
+                    <div>
+                      <p className="font-semibold">{s.name}</p>
+                      {s.whatsapp_number && (
+                        <p className="text-xs text-masala-brown/50">{s.whatsapp_number}</p>
+                      )}
+                    </div>
                   </div>
                   <p className={`text-sm font-bold ${s.remaining > 0 ? "text-masala-red" : "text-green-600"}`}>
                     {s.remaining > 0 ? `₹${s.remaining.toLocaleString("en-IN")}` : "Settled ✓"}
