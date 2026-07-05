@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import Nav from "@/components/Nav";
 import { inr } from "@/lib/finance";
 import { Plus, X, MessageCircle, Check, Send, Edit2, Trash2, Eye } from "lucide-react";
+import NameDropdown from "@/components/NameDropdown";
 
 type VendorRow = {
   id: string;
@@ -287,18 +288,14 @@ export default function PurchaseVendorsPage() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="text-sm font-medium">Vendor Name</label>
-                  <div className="relative mt-1">
-                    <input
-                      className="input"
-                      list="vendor-list"
+                  <div className="mt-1">
+                    <NameDropdown
+                      names={uniqueVendors}
                       value={form.vendor_name}
-                      onChange={(e) => setForm({ ...form, vendor_name: e.target.value })}
-                      required
+                      onChange={(value) => setForm({ ...form, vendor_name: value })}
                       placeholder="Enter or select vendor"
+                      required
                     />
-                    <datalist id="vendor-list">
-                      {uniqueVendors.map((v) => <option key={v} value={v} />)}
-                    </datalist>
                   </div>
                 </div>
 

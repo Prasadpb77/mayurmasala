@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import Nav from "@/components/Nav";
 import { inr } from "@/lib/finance";
 import { Plus, X, HandCoins, ArrowLeftRight, Clock, MessageCircle, Check, Send, Edit2, Trash2, Eye } from "lucide-react";
+import NameDropdown from "@/components/NameDropdown";
 
 type LendingRow = {
   id: string;
@@ -316,18 +317,14 @@ export default function LendingPage() {
                 {/* Person name */}
                 <div>
                   <label className="text-sm font-medium">Person Name</label>
-                  <div className="relative mt-1">
-                    <input
-                      className="input"
-                      list="person-list"
+                  <div className="mt-1">
+                    <NameDropdown
+                      names={uniqueNames}
                       value={form.person_name}
-                      onChange={(e) => setForm({ ...form, person_name: e.target.value })}
-                      required
+                      onChange={(value) => setForm({ ...form, person_name: value })}
                       placeholder="Enter or select name"
+                      required
                     />
-                    <datalist id="person-list">
-                      {uniqueNames.map((n) => <option key={n} value={n} />)}
-                    </datalist>
                   </div>
                 </div>
 
