@@ -222,14 +222,14 @@ export default function AttendancePage() {
           <div className="card p-4 md:p-5">
             <h3 className="font-semibold mb-3">Attendance summary — {monthLabel}</h3>
             <div className="overflow-x-auto">
-              <table className="data-table w-full">
+              <table className="data-table w-full min-w-[450px]">
                 <thead>
                   <tr>
-                    <th className="px-2 md:px-3">Staff</th>
-                    <th className="px-2 md:px-3 text-right">Present</th>
-                    <th className="hidden sm:table-cell px-2 md:px-3 text-right">Absent</th>
-                    <th className="hidden sm:table-cell px-2 md:px-3 text-right">Total</th>
-                    <th className="px-2 md:px-3 text-right">%</th>
+                    <th className="px-3">Staff</th>
+                    <th className="px-3 text-right whitespace-nowrap">Present</th>
+                    <th className="px-3 text-right whitespace-nowrap">Absent</th>
+                    <th className="px-3 text-right whitespace-nowrap">Total</th>
+                    <th className="px-3 text-right whitespace-nowrap">%</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -240,11 +240,11 @@ export default function AttendancePage() {
                     const pct = total > 0 ? Math.round((present / total) * 100) : 0;
                     return (
                       <tr key={staff.id}>
-                        <td className="px-2 md:px-3 text-sm font-medium">{staff.name}</td>
-                        <td className="px-2 md:px-3 text-right text-sm text-green-700">{present}</td>
-                        <td className="hidden sm:table-cell px-2 md:px-3 text-right text-sm text-masala-red">{absent}</td>
-                        <td className="hidden sm:table-cell px-2 md:px-3 text-right text-sm">{total}</td>
-                        <td className="px-2 md:px-3 text-right text-sm">{pct}%</td>
+                        <td className="px-3 text-sm font-medium">{staff.name}</td>
+                        <td className="px-3 text-right text-sm text-green-700">{present}</td>
+                        <td className="px-3 text-right text-sm text-masala-red">{absent}</td>
+                        <td className="px-3 text-right text-sm">{total}</td>
+                        <td className="px-3 text-right text-sm">{pct}%</td>
                       </tr>
                     );
                   })}

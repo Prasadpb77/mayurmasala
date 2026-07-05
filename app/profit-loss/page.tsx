@@ -23,27 +23,8 @@ function NetTable({ title, rows, formatPeriod }: { title: string; rows: Row[]; f
   return (
     <div className="card p-4 md:p-5">
       <h3 className="font-semibold mb-3">{title}</h3>
-      {/* Mobile: card list */}
-      <div className="sm:hidden space-y-2">
-        {rows.length === 0 && <p className="text-center text-masala-brown/50 py-4 text-sm">No data yet.</p>}
-        {rows.map((r) => {
-          const net = r.sale - r.purchase - r.expense;
-          return (
-            <div key={r.period} className="flex items-center justify-between py-2 border-b border-masala-brown/10 last:border-0">
-              <div>
-                <p className="text-sm font-medium">{formatPeriod(r.period)}</p>
-                <p className="text-xs text-masala-brown/50">Sales: {inr(r.sale)}</p>
-              </div>
-              <p className={`text-sm font-semibold ${net >= 0 ? "text-green-600" : "text-masala-red"}`}>
-                {net >= 0 ? "▲" : "▼"}{inr(net)}
-              </p>
-            </div>
-          );
-        })}
-      </div>
-      {/* Desktop: table */}
-      <div className="hidden sm:block overflow-x-auto">
-        <table className="data-table w-full">
+      <div className="overflow-x-auto">
+        <table className="data-table w-full min-w-[500px]">
           <thead>
             <tr>
               <th className="px-3 whitespace-nowrap">Period</th>
