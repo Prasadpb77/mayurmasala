@@ -12,6 +12,7 @@ type VendorRow = {
   vendor_name: string;
   whatsapp_number: string | null;
   description: string | null;
+  bill_no: string | null;
   amount: number;
   paid_amount: number;
   status: "paid" | "unpaid" | "partial";
@@ -30,6 +31,7 @@ export default function PurchaseVendorsPage() {
     vendor_name: "",
     whatsapp_number: "",
     description: "",
+    bill_no: "",
     amount: "",
     paid_amount: "",
     status: "unpaid" as "paid" | "unpaid" | "partial",
@@ -89,6 +91,7 @@ export default function PurchaseVendorsPage() {
           vendor_name: form.vendor_name.trim(),
           whatsapp_number: form.whatsapp_number.trim() || null,
           description: form.description.trim() || null,
+          bill_no: form.bill_no.trim() || null,
           amount: totalAmt,
           paid_amount: paidAmt,
           status,
@@ -109,6 +112,7 @@ export default function PurchaseVendorsPage() {
           vendor_name: form.vendor_name.trim(),
           whatsapp_number: form.whatsapp_number.trim() || null,
           description: form.description.trim() || null,
+          bill_no: form.bill_no.trim() || null,
           amount: totalAmt,
           paid_amount: paidAmt,
           status,
@@ -148,6 +152,7 @@ export default function PurchaseVendorsPage() {
       vendor_name: row.vendor_name,
       whatsapp_number: row.whatsapp_number || "",
       description: row.description || "",
+      bill_no: row.bill_no || "",
       amount: String(row.amount),
       paid_amount: String(row.paid_amount),
       status: row.status,
@@ -281,6 +286,12 @@ export default function PurchaseVendorsPage() {
                   <label className="text-sm font-medium">Description (optional)</label>
                   <textarea className="input mt-1" rows={2} placeholder="What was purchased..."
                     value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Bill No. (optional)</label>
+                  <input className="input mt-1" type="text" placeholder="e.g. INV-001"
+                    value={form.bill_no} onChange={(e) => setForm({ ...form, bill_no: e.target.value })} />
                 </div>
 
                 <div>
