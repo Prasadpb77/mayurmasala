@@ -246,6 +246,39 @@ export default function LendingPage() {
           </div>
         )}
 
+        {/* Summary table */}
+        {summaries.length > 0 && (
+          <div className="card p-4 md:p-5">
+            <h3 className="font-semibold mb-3">Lending Summary</h3>
+            <div className="overflow-x-auto">
+              <table className="data-table w-full min-w-[500px]">
+                <thead>
+                  <tr>
+                    <th className="px-3">Name</th>
+                    <th className="px-3 text-right">Lent</th>
+                    <th className="px-3 text-right">Got Back</th>
+                    <th className="px-3 text-right">Remaining</th>
+                    <th className="px-3 text-right">Days</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {summaries.map((s) => (
+                    <tr key={s.name}>
+                      <td className="px-3 text-sm font-medium">{s.name}</td>
+                      <td className="px-3 text-right text-sm">{inr(s.totalLent)}</td>
+                      <td className="px-3 text-right text-sm text-green-700">{inr(s.totalSettled)}</td>
+                      <td className={`px-3 text-right text-sm font-medium ${s.remaining > 0 ? "text-masala-red" : "text-green-600"}`}>
+                        {inr(s.remaining)}
+                      </td>
+                      <td className="px-3 text-right text-sm">{s.daysSince}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {/* Summary cards */}
         {summaries.length > 0 && (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
