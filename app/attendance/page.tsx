@@ -219,17 +219,17 @@ export default function AttendancePage() {
 
         {/* Summary table — all staff, this month */}
         {staffList.length > 0 && (
-          <div className="card p-5">
+          <div className="card p-4 md:p-5">
             <h3 className="font-semibold mb-3">Attendance summary — {monthLabel}</h3>
             <div className="overflow-x-auto">
               <table className="data-table w-full">
                 <thead>
                   <tr>
-                    <th>Staff</th>
-                    <th>Present</th>
-                    <th>Absent</th>
-                    <th>Total days</th>
-                    <th>Attendance %</th>
+                    <th className="px-2 md:px-3">Staff</th>
+                    <th className="px-2 md:px-3 text-right">Present</th>
+                    <th className="hidden sm:table-cell px-2 md:px-3 text-right">Absent</th>
+                    <th className="hidden sm:table-cell px-2 md:px-3 text-right">Total</th>
+                    <th className="px-2 md:px-3 text-right">%</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -240,11 +240,11 @@ export default function AttendancePage() {
                     const pct = total > 0 ? Math.round((present / total) * 100) : 0;
                     return (
                       <tr key={staff.id}>
-                        <td className="font-medium">{staff.name}</td>
-                        <td className="text-green-700">{present}</td>
-                        <td className="text-masala-red">{absent}</td>
-                        <td>{total}</td>
-                        <td>{pct}%</td>
+                        <td className="px-2 md:px-3 text-sm font-medium">{staff.name}</td>
+                        <td className="px-2 md:px-3 text-right text-sm text-green-700">{present}</td>
+                        <td className="hidden sm:table-cell px-2 md:px-3 text-right text-sm text-masala-red">{absent}</td>
+                        <td className="hidden sm:table-cell px-2 md:px-3 text-right text-sm">{total}</td>
+                        <td className="px-2 md:px-3 text-right text-sm">{pct}%</td>
                       </tr>
                     );
                   })}

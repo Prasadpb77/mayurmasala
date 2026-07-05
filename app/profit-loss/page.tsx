@@ -21,33 +21,33 @@ function pivot(rows: any[], periodKey: string): Row[] {
 
 function NetTable({ title, rows, formatPeriod }: { title: string; rows: Row[]; formatPeriod: (p: string) => string }) {
   return (
-    <div className="card p-5">
+    <div className="card p-4 md:p-5">
       <h3 className="font-semibold mb-3">{title}</h3>
       <div className="overflow-x-auto">
         <table className="data-table w-full">
           <thead>
             <tr>
-              <th>Period</th>
-              <th>Sales</th>
-              <th>Purchases</th>
-              <th>Expenses</th>
-              <th>Net</th>
+              <th className="px-2 md:px-3 whitespace-nowrap">Period</th>
+              <th className="px-2 md:px-3 text-right whitespace-nowrap">Sales</th>
+              <th className="hidden sm:table-cell px-2 md:px-3 text-right whitespace-nowrap">Purchases</th>
+              <th className="hidden sm:table-cell px-2 md:px-3 text-right whitespace-nowrap">Expenses</th>
+              <th className="px-2 md:px-3 text-right whitespace-nowrap">Net</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
-              <tr><td colSpan={5} className="text-center text-masala-brown/50 py-6">No data yet.</td></tr>
+              <tr><td colSpan={5} className="text-center text-masala-brown/50 py-6 px-2">No data yet.</td></tr>
             )}
             {rows.map((r) => {
               const net = r.sale - r.purchase - r.expense;
               return (
                 <tr key={r.period}>
-                  <td>{formatPeriod(r.period)}</td>
-                  <td>{inr(r.sale)}</td>
-                  <td>{inr(r.purchase)}</td>
-                  <td>{inr(r.expense)}</td>
-                  <td className={`font-semibold ${net >= 0 ? "text-green-600" : "text-masala-red"}`}>
-                    {net >= 0 ? "▲ " : "▼ "}{inr(net)}
+                  <td className="px-2 md:px-3 whitespace-nowrap text-sm">{formatPeriod(r.period)}</td>
+                  <td className="px-2 md:px-3 text-right whitespace-nowrap text-sm">{inr(r.sale)}</td>
+                  <td className="hidden sm:table-cell px-2 md:px-3 text-right whitespace-nowrap text-sm">{inr(r.purchase)}</td>
+                  <td className="hidden sm:table-cell px-2 md:px-3 text-right whitespace-nowrap text-sm">{inr(r.expense)}</td>
+                  <td className={`px-2 md:px-3 text-right whitespace-nowrap text-sm font-semibold ${net >= 0 ? "text-green-600" : "text-masala-red"}`}>
+                    {net >= 0 ? "▲" : "▼"}{inr(net)}
                   </td>
                 </tr>
               );
