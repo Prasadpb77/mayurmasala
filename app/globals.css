@@ -2,10 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ---------- Mobile app-like touch behavior ---------- */
+html {
+  /* Disable double-tap-to-zoom on iOS Safari (works with touch-action too) */
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   background-image:
     radial-gradient(circle at 10% 0%, rgba(242,185,11,0.08), transparent 40%),
     radial-gradient(circle at 90% 20%, rgba(180,24,42,0.06), transparent 40%);
+  overscroll-behavior-y: contain; /* stop the whole-page "rubber band" bounce feeling non-native */
+  -webkit-tap-highlight-color: transparent; /* remove the gray flash on tap on Android/iOS */
+}
+
+button, a, [role="button"] {
+  touch-action: manipulation; /* removes the ~300ms tap delay and blocks double-tap zoom on these elements */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Every input/select/textarea at 16px+ so iOS Safari never auto-zooms in on focus */
+input, select, textarea {
+  font-size: 16px !important;
 }
 
 .card {
@@ -16,16 +35,18 @@ body {
   @apply relative overflow-hidden rounded-xl2 p-5 text-masala-cream bg-masala-gradient shadow-glow;
 }
 
+/* min-h-[44px] meets Apple/Google's minimum comfortable tap-target guideline;
+   active:scale gives tactile "pressed" feedback like a native app button */
 .btn-primary {
-  @apply bg-masala-red hover:bg-masala-redDeep text-white font-medium rounded-lg px-4 py-2 transition-colors;
+  @apply bg-masala-red hover:bg-masala-redDeep active:scale-[0.97] text-white font-medium rounded-lg px-4 py-2.5 min-h-[44px] transition-all select-none;
 }
 
 .btn-gold {
-  @apply bg-gold-gradient text-masala-brown font-semibold rounded-lg px-4 py-2 hover:brightness-95 transition;
+  @apply bg-gold-gradient text-masala-brown font-semibold rounded-lg px-4 py-2.5 min-h-[44px] hover:brightness-95 active:scale-[0.97] transition-all select-none;
 }
 
 .input {
-  @apply w-full rounded-lg border border-masala-brown/20 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-masala-gold;
+  @apply w-full rounded-lg border border-masala-brown/20 bg-white px-3 py-3 min-h-[44px] focus:outline-none focus:ring-2 focus:ring-masala-gold;
 }
 
 table.data-table th {
@@ -33,4 +54,9 @@ table.data-table th {
 }
 table.data-table td {
   @apply py-2 px-3 border-t border-masala-brown/10 text-sm;
+}
+
+/* Comfortable tap targets for icon-only / nav buttons */
+.tap-target {
+  @apply min-w-[44px] min-h-[44px] flex items-center justify-center;
 }

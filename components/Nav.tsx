@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { LayoutGrid, ShoppingCart, PackagePlus, Receipt, LogOut, Menu, X, CalendarCheck } from "lucide-react";
+import { LayoutGrid, ShoppingCart, PackagePlus, Receipt, LogOut, Menu, X, CalendarCheck, LineChart } from "lucide-react";
 import clsx from "clsx";
 import { useState } from "react";
 
@@ -12,6 +12,7 @@ const links = [
   { href: "/purchases", label: "Purchases", icon: PackagePlus },
   { href: "/expenses", label: "Expenses", icon: Receipt },
   { href: "/attendance", label: "Attendance", icon: CalendarCheck },
+  { href: "/profit-loss", label: "P&L", icon: LineChart },
 ];
 
 export default function Nav() {
@@ -35,7 +36,7 @@ export default function Nav() {
           </div>
           <p className="font-bold text-sm leading-tight">Mayur Masala Center</p>
         </div>
-        <button onClick={() => setOpen(!open)} className="p-1">
+        <button onClick={() => setOpen(!open)} className="tap-target -mr-2">
           {open ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>

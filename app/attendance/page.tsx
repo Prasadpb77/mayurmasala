@@ -88,6 +88,15 @@ export default function AttendancePage() {
     return count;
   }
 
+  function getAbsentCount(staffId: string) {
+    let count = 0;
+    dates.forEach((date) => {
+      const status = attendance.get(`${staffId}|${date}`);
+      if (status === "absent") count++;
+    });
+    return count;
+  }
+
   return (
     <div className="flex">
       <Nav />
@@ -132,7 +141,7 @@ export default function AttendancePage() {
             <div className="relative bg-masala-cream rounded-2xl p-6 shadow-2xl w-full max-w-sm mx-4" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-lg">Add Staff</h3>
-                <button onClick={() => setShowAdd(false)} className="p-1 hover:text-masala-red"><X size={20} /></button>
+                <button onClick={() => setShowAdd(false)} className="tap-target -mr-1 hover:text-masala-red"><X size={20} /></button>
               </div>
               <form onSubmit={(e) => { e.preventDefault(); addStaff(); }} className="space-y-4">
                 <div>
@@ -205,6 +214,43 @@ export default function AttendancePage() {
             <button onClick={() => setShowAdd(true)} className="btn-primary mt-4 inline-flex items-center gap-1">
               <Plus size={16} /> Add your first staff member
             </button>
+          </div>
+        )}
+
+        {/* Summary table — all staff, this month */}
+        {staffList.length > 0 && (
+          <div className="card p-5">
+            <h3 className="font-semibold mb-3">Attendance summary — {monthLabel}</h3>
+            <div className="overflow-x-auto">
+              <table className="data-table w-full">
+                <thead>
+                  <tr>
+                    <th>Staff</th>
+                    <th>Present</th>
+                    <th>Absent</th>
+                    <th>Total days</th>
+                    <th>Attendance %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {staffList.map((staff) => {
+                    const present = getPresentCount(staff.id);
+                    const absent = getAbsentCount(staff.id);
+                    const total = dates.length;
+                    const pct = total > 0 ? Math.round((present / total) * 100) : 0;
+                    return (
+                      <tr key={staff.id}>
+                        <td className="font-medium">{staff.name}</td>
+                        <td className="text-green-700">{present}</td>
+                        <td className="text-masala-red">{absent}</td>
+                        <td>{total}</td>
+                        <td>{pct}%</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </main>

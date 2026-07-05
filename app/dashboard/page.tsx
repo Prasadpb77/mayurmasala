@@ -19,37 +19,50 @@ async function sumWhere(supabase: any, type: string, gteDate?: string) {
 
 export default async function DashboardPage() {
   const supabase = createClient();
-  // Use getSession() instead of getUser() — reads cookie locally, no network call
+  // getSession() reads the cookie locally — no network round trip, unlike getUser().
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.user) redirect("/login");
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-  const yearStart = new Date(now.getFullYear(), 0, 1).toISOString().slice(0, 10);
   const fy = currentFinYear();
   const [fyStartYear] = fy.split("-");
   const fyStart = `${fyStartYear}-04-01`;
 
-  const [monthSale, monthPurchase, monthExpense, fySale, fyExpense] = await Promise.all([
+  // Everything fires in ONE parallel batch instead of a Promise.all followed by
+  // sequential awaits — this is what was adding extra round trips and made the
+  // dashboard feel slow to open right after login.
+  const [
+    monthSale,
+    monthPurchase,
+    monthExpense,
+    fySale,
+    fyPurchase,
+    fyExpense,
+    recentRes,
+    monthlyRes,
+  ] = await Promise.all([
     sumWhere(supabase, "sale", monthStart),
     sumWhere(supabase, "purchase", monthStart),
     sumWhere(supabase, "expense", monthStart),
     sumWhere(supabase, "sale", fyStart),
+    sumWhere(supabase, "purchase", fyStart),
     sumWhere(supabase, "expense", fyStart),
+    supabase
+      .from("transactions")
+      .select("txn_date,type,amount,category,description,source")
+      .order("txn_date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(15),
+    supabase
+      .from("v_monthly_summary")
+      .select("*")
+      .order("period", { ascending: true })
+      .limit(36),
   ]);
 
-  const { data: recent } = await supabase
-    .from("transactions")
-    .select("txn_date,type,amount,category,description,source")
-    .order("txn_date", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(15);
-
-  const { data: monthlyRaw } = await supabase
-    .from("v_monthly_summary")
-    .select("*")
-    .order("period", { ascending: true })
-    .limit(36);
+  const recent = recentRes.data;
+  const monthlyRaw = monthlyRes.data;
 
   const chartMap: Record<string, any> = {};
   (monthlyRaw || []).forEach((r: any) => {
@@ -58,6 +71,10 @@ export default async function DashboardPage() {
     chartMap[key][r.type] = Number(r.total);
   });
   const chartData = Object.values(chartMap).slice(-12);
+
+  // Net = Sales - Purchases - Expenses (matches the Profit & Loss page formula)
+  const monthNet = monthSale - monthPurchase - monthExpense;
+  const fyNet = fySale - fyPurchase - fyExpense;
 
   return (
     <div className="flex">
@@ -72,7 +89,12 @@ export default async function DashboardPage() {
           <KpiCard label="This month — Sales" value={monthSale} icon={TrendingUp} />
           <KpiCard label="This month — Purchases" value={monthPurchase} icon={TrendingDown} />
           <KpiCard label="This month — Expenses" value={monthExpense} icon={Wallet} />
-          <KpiCard label={`FY ${fy} — Net (Sales - Expenses)`} value={fySale - fyExpense} icon={PiggyBank} />
+          <KpiCard
+            label={`FY ${fy} — Net (Sales − Purchase − Expense)`}
+            value={fyNet}
+            sub={`This month's net: ₹${monthNet.toLocaleString("en-IN")}`}
+            icon={PiggyBank}
+          />
         </div>
 
         <TrendChart data={chartData as any} />
