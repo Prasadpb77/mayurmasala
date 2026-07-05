@@ -112,8 +112,8 @@ export default function TxnPage({ type, title }: { type: Txn; title: string }) {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6">
-        <form onSubmit={handleSubmit} className="card p-5 space-y-3 md:col-span-1">
+      <div className="flex flex-col md:grid md:grid-cols-3 gap-6">
+        <form onSubmit={handleSubmit} className="card p-4 md:p-5 space-y-3 md:col-span-1">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold">{editingId ? "Edit" : "Add"} {title.slice(0, -1)}</h3>
             {editingId && (

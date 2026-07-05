@@ -42,7 +42,7 @@ export default function QuickAdd({ onDone }: { onDone?: () => void }) {
       {/* FAB button */}
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-20 md:bottom-6 right-4 z-50 w-14 h-14 rounded-full bg-masala-red text-white shadow-xl hover:bg-masala-redDeep transition-colors flex items-center justify-center"
+        className="fixed bottom-6 right-4 z-50 w-14 h-14 rounded-full bg-masala-red text-white shadow-xl hover:bg-masala-redDeep transition-colors flex items-center justify-center"
         title="Quick add"
       >
         <Plus size={28} />

@@ -100,7 +100,7 @@ export default function AttendancePage() {
   return (
     <div className="flex">
       <Nav />
-      <main className="flex-1 p-6 pt-20 md:pt-6 pb-20 md:pb-6 space-y-6">
+      <main className="flex-1 p-4 md:p-6 space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-bold">Attendance</h1>

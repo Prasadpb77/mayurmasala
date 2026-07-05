@@ -107,7 +107,7 @@ export default function ProfitLossPage() {
   return (
     <div className="flex">
       <Nav />
-      <main className="flex-1 p-6 pt-20 md:pt-6 pb-20 md:pb-6 space-y-6">
+      <main className="flex-1 p-4 md:p-6 space-y-6">
         <div>
           <h1 className="text-2xl font-bold">Profit & Loss</h1>
           <p className="text-masala-brown/60 text-sm">Net = Sales − Purchase − Expense</p>
