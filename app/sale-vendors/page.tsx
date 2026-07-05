@@ -71,15 +71,16 @@ export default function SaleVendorsPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.vendor_name || !form.amount) return;
+    if (!form.vendor_name || (!form.amount && !form.paid_amount)) return;
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
 
     const paidAmt = Number(form.paid_amount) || 0;
-    const totalAmt = Number(form.amount);
+    const totalAmt = Number(form.amount) || 0;
     let status: "paid" | "unpaid" | "partial" = "unpaid";
-    if (paidAmt >= totalAmt) status = "paid";
+    if (paidAmt >= totalAmt && totalAmt > 0) status = "paid";
     else if (paidAmt > 0) status = "partial";
+    else if (totalAmt > 0) status = "unpaid";
 
     if (editingId) {
       const { error } = await supabase
@@ -313,13 +314,14 @@ export default function SaleVendorsPage() {
 
                 <div>
                   <label className="text-sm font-medium">Total Amount (₹)</label>
-                  <input className="input mt-1" type="number" required min="0" step="0.01" placeholder="0.00"
+                  <input className="input mt-1" type="number" min="0" step="0.01" placeholder="0.00"
                     value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+                  <p className="text-xs text-masala-brown/50 mt-1">Leave empty or 0 if only recording a payment</p>
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium">Paid Amount (₹)</label>
-                  <input className="input mt-1" type="number" min="0" step="0.01" placeholder="0.00"
+                  <label className="text-sm font-medium">Paid Amount (₹) *</label>
+                  <input className="input mt-1" type="number" min="0" step="0.01" placeholder="0.00" required
                     value={form.paid_amount} onChange={(e) => setForm({ ...form, paid_amount: e.target.value })} />
                 </div>
 
