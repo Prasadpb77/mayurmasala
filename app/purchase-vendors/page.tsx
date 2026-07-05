@@ -307,6 +307,22 @@ export default function PurchaseVendorsPage() {
                     value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
                 </div>
 
+                {form.vendor_name && (() => {
+                  const vendorRows = rows.filter(r => r.vendor_name === form.vendor_name);
+                  const total = vendorRows.reduce((sum, r) => sum + r.amount, 0);
+                  const paid = vendorRows.reduce((sum, r) => sum + r.paid_amount, 0);
+                  const remaining = total - paid;
+                  if (remaining > 0) {
+                    return (
+                      <div className="p-3 bg-masala-red/5 border border-masala-red/20 rounded-lg">
+                        <p className="text-xs text-masala-brown/60">Previous Balance</p>
+                        <p className="text-lg font-bold text-masala-red">₹{remaining.toLocaleString("en-IN")}</p>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
                 <div>
                   <label className="text-sm font-medium">Status</label>
                   <div className="grid grid-cols-3 gap-2 mt-1">
