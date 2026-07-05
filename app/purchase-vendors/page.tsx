@@ -379,8 +379,8 @@ export default function PurchaseVendorsPage() {
           </div>
         )}
 
-        {/* WhatsApp notification after adding entry */}
-        {showWhatsAppPrompt && lastEntry && lastEntry.whatsapp_number && (
+        {/* Success message after adding entry */}
+        {showWhatsAppPrompt && lastEntry && (
           <div className="card p-4 border-2 border-green-200 bg-green-50/50">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
@@ -392,18 +392,6 @@ export default function PurchaseVendorsPage() {
                   Purchase from {lastEntry.vendor_name} for ₹{lastEntry.amount.toLocaleString("en-IN")}
                   {lastEntry.status === "unpaid" && " • Status: Unpaid"}
                 </p>
-                <button
-                  onClick={() => { sendWhatsApp(lastEntry); setShowWhatsAppPrompt(false); }}
-                  className="btn-primary bg-green-600 hover:bg-green-700 flex items-center gap-2"
-                >
-                  <MessageCircle size={18} /> Send WhatsApp Notification
-                </button>
-                <button
-                  onClick={() => setShowWhatsAppPrompt(false)}
-                  className="ml-2 px-4 py-2 text-sm text-masala-brown/60 hover:text-masala-brown"
-                >
-                  Skip
-                </button>
               </div>
             </div>
           </div>
