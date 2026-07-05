@@ -1,2 +1,8 @@
 /** @type {import('next').NextConfig} */
-module.exports = { experimental: { serverActions: { allowedOrigins: ["*"] } } };
+const repo = "mayurmasala";
+module.exports = {
+  output: "export",
+  basePath: `/${repo}`,
+  assetPrefix: `/${repo}/`,
+  images: { unoptimized: true },
+};
