@@ -2,11 +2,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Plus, X, ShoppingCart, PackagePlus, Receipt, HandCoins, ArrowLeftRight } from "lucide-react";
+import { Plus, X, ShoppingCart, Receipt, HandCoins, ArrowLeftRight } from "lucide-react";
 
 const types = [
   { key: "sale", label: "Sale", icon: ShoppingCart },
-  { key: "purchase", label: "Purchase", icon: PackagePlus },
   { key: "expense", label: "Expense", icon: Receipt },
   { key: "lending", label: "Lending", icon: HandCoins },
 ] as const;
@@ -14,7 +13,7 @@ const types = [
 export default function QuickAdd({ onDone }: { onDone?: () => void }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [type, setType] = useState<"sale" | "purchase" | "expense" | "lending">("sale");
+  const [type, setType] = useState<"sale" | "expense" | "lending">("sale");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("");
   const [lendType, setLendType] = useState<"lend" | "settle">("lend");
