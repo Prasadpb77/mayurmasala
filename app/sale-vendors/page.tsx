@@ -157,7 +157,7 @@ export default function SaleVendorsPage() {
     if (!entry.whatsapp_number) return;
     const phone = entry.whatsapp_number.replace(/\D/g, "");
     const remaining = entry.amount - entry.paid_amount;
-    const message = `नमस्कार ${entry.vendor_name}, या ${new Date(entry.date).toLocaleDateString("en-IN")} रोजी ₹${entry.amount.toLocaleString("en-IN")} ची विक्री करण्यात आली होती. सदर बाकी रक्कम ₹${remaining.toLocaleString("en-IN")} आहे. कृपया पayment करण्यासाठी संपर्क करा.`;
+    const message = `नमस्कार ${entry.vendor_name}, या ${new Date(entry.date).toLocaleDateString("en-IN")} रोजी ₹${entry.amount.toLocaleString("en-IN")} ची विक्री करण्यात आली होती. सदर बाकी रक्कम ₹${remaining.toLocaleString("en-IN")} आहे. कृपया लवकरच पayment पाठवण्यासाठी संपर्क करा.`;
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
   }
@@ -166,7 +166,7 @@ export default function SaleVendorsPage() {
     if (!entry.whatsapp_number) return;
     const phone = entry.whatsapp_number.replace(/\D/g, "");
     const remaining = entry.amount - entry.paid_amount;
-    const message = `नमस्कार ${entry.vendor_name}, ही एक फॉलो-अप संदेश आहे. तुमच्याकडून ₹${remaining.toLocaleString("en-IN")} बाकी आहे. कृपया लवकरच पayment करण्यासाठी संपर्क करा.`;
+    const message = `नमस्कार ${entry.vendor_name}, ही एक फॉलो-अप संदेश आहे. तुमच्याकडून ₹${remaining.toLocaleString("en-IN")} बाकी आहे. कृपया लवकरच पayment पाठवण्यासाठी संपर्क करा.`;
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
   }
@@ -302,15 +302,9 @@ export default function SaleVendorsPage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium">Total Amount (₹)</label>
+                  <label className="text-sm font-medium">Amount (₹)</label>
                   <input className="input mt-1" type="number" required min="0" step="0.01" placeholder="0.00"
                     value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium">Paid Amount (₹)</label>
-                  <input className="input mt-1" type="number" min="0" step="0.01" placeholder="0.00"
-                    value={form.paid_amount} onChange={(e) => setForm({ ...form, paid_amount: e.target.value })} />
                 </div>
 
                 <div>

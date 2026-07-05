@@ -155,8 +155,7 @@ export default function LendingPage() {
     if (!entry.whatsapp_number) return;
     const phone = entry.whatsapp_number.replace(/\D/g, "");
     const remaining = entry.amount - entry.paid_amount;
-    const actionText = entry.type === "lend" ? "सोडवले" : "परत मिळाले";
-    const message = `नमस्कार ${entry.person_name}, या ${new Date(entry.date).toLocaleDateString("en-IN")} रोजी तुमच्याकडून ₹${entry.amount.toLocaleString("en-IN")} ${entry.type === 'lend' ? 'उधारी घेतली' : 'परत केली'}. बाकी रक्कम ₹${remaining.toLocaleString("en-IN")} आहे. कृपया लवकरच पayment करण्यासाठी संपर्क करा.`;
+    const message = `नमस्कार ${entry.person_name}, या ${new Date(entry.date).toLocaleDateString("en-IN")} रोजी तुमच्याकडून ₹${entry.amount.toLocaleString("en-IN")} ${entry.type === 'lend' ? 'उधारी घेतली' : 'परत केली'}. बाकी रक्कम ₹${remaining.toLocaleString("en-IN")} आहे. कृपया लवकरच पayment पाठवण्यासाठी संपर्क करा.`;
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
   }
@@ -165,7 +164,7 @@ export default function LendingPage() {
     if (!entry.whatsapp_number) return;
     const phone = entry.whatsapp_number.replace(/\D/g, "");
     const remaining = entry.amount - entry.paid_amount;
-    const message = `नमस्कार ${entry.person_name}, ही एक फॉलो-अप संदेश आहे. तुमच्याकडून ₹${remaining.toLocaleString("en-IN")} बाकी आहे. कृपया लवकरच पayment करण्यासाठी संपर्क करा.`;
+    const message = `नमस्कार ${entry.person_name}, ही एक फॉलो-अप संदेश आहे. तुमच्याकडून ₹${remaining.toLocaleString("en-IN")} बाकी आहे. कृपया लवकरच पayment पाठवण्यासाठी संपर्क करा.`;
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
   }
