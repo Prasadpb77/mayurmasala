@@ -15,5 +15,7 @@ create index if not exists idx_lending_date on lending (date);
 
 alter table lending enable row level security;
 
+drop policy if exists "authenticated all lending" on lending;
+
 create policy "authenticated all lending" on lending
   for all using (auth.role() = 'authenticated');
