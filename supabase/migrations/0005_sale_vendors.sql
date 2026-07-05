@@ -4,8 +4,9 @@ create table if not exists sale_vendors (
   vendor_name text not null,
   whatsapp_number text,
   description text,
-  amount numeric(12,2) not null check (amount > 0),
-  status text not null default 'unpaid' check (status in ('paid', 'unpaid')),
+  amount numeric(12,2) not null check (amount >= 0),
+  paid_amount numeric(12,2) not null default 0,
+  status text not null default 'unpaid' check (status in ('paid', 'unpaid', 'partial')),
   date date not null default current_date,
   created_by text,
   created_at timestamptz not null default now()
