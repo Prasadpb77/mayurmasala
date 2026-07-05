@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Nav from "@/components/Nav";
 import { inr } from "@/lib/finance";
-import { Plus, X, MessageCircle, Check, Send, Edit2, Trash2, Eye } from "lucide-react";
+import { Plus, X, Check, Edit2, Trash2, Eye } from "lucide-react";
 import NameDropdown from "@/components/NameDropdown";
 
 type VendorRow = {
@@ -38,7 +38,7 @@ export default function PurchaseVendorsPage() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [lastEntry, setLastEntry] = useState<VendorRow | null>(null);
-  const [showWhatsAppPrompt, setShowWhatsAppPrompt] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   // Auto-fill vendor details when vendor name changes
   useEffect(() => {
@@ -125,9 +125,7 @@ export default function PurchaseVendorsPage() {
 
       if (insertedData && insertedData.length > 0) {
         setLastEntry(insertedData[0]);
-        if (insertedData[0].whatsapp_number) {
-          setShowWhatsAppPrompt(true);
-        }
+        setShowSuccess(true);
       }
     }
 
@@ -166,24 +164,6 @@ export default function PurchaseVendorsPage() {
       return;
     }
     await load();
-  }
-
-  function sendWhatsApp(entry: VendorRow) {
-    if (!entry.whatsapp_number) return;
-    const phone = entry.whatsapp_number.replace(/\D/g, "");
-    const remaining = entry.amount - entry.paid_amount;
-    const message = `नमस्कार ${entry.vendor_name}, या ${new Date(entry.date).toLocaleDateString("en-IN")} रोजी ₹${entry.amount.toLocaleString("en-IN")} ची खरेदी करण्यात आली होती. सदर बाकी रक्कम ₹${remaining.toLocaleString("en-IN")} आहे. कृपया लवकरच पayment पाठवण्यासाठी संपर्क करा.`;
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-    window.open(url, "_blank");
-  }
-
-  function sendFollowUpWhatsApp(entry: VendorRow) {
-    if (!entry.whatsapp_number) return;
-    const phone = entry.whatsapp_number.replace(/\D/g, "");
-    const remaining = entry.amount - entry.paid_amount;
-    const message = `नमस्कार ${entry.vendor_name}, ही एक फॉलो-अप संदेश आहे. तुमच्याकडून ₹${remaining.toLocaleString("en-IN")} बाकी आहे. कृपया लवकरच पayment पाठवण्यासाठी संपर्क करा.`;
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-    window.open(url, "_blank");
   }
 
   // Vendor-wise summary
@@ -262,15 +242,6 @@ export default function PurchaseVendorsPage() {
                   >
                     <Eye size={14} /> {viewingVendor === v.name ? "Show All" : "View History"}
                   </button>
-                  {v.remaining > 0 && rows.find((r) => r.vendor_name === v.name)?.whatsapp_number && (
-                    <button
-                      onClick={() => sendFollowUpWhatsApp(rows.find((r) => r.vendor_name === v.name)!)}
-                      className="px-3 py-2 rounded-lg bg-green-50 text-green-700 hover:bg-green-100"
-                      title="Send reminder"
-                    >
-                      <Send size={14} />
-                    </button>
-                  )}
                 </div>
               </div>
             ))}
@@ -380,7 +351,7 @@ export default function PurchaseVendorsPage() {
         )}
 
         {/* Success message after adding entry */}
-        {showWhatsAppPrompt && lastEntry && (
+        {showSuccess && lastEntry && (
           <div className="card p-4 border-2 border-green-200 bg-green-50/50">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
@@ -458,15 +429,6 @@ export default function PurchaseVendorsPage() {
                             >
                               <Trash2 size={14} />
                             </button>
-                            {r.whatsapp_number && (
-                              <button
-                                onClick={() => sendFollowUpWhatsApp(r)}
-                                className="p-1.5 rounded-md hover:bg-green-50 text-masala-brown/60 hover:text-green-700"
-                                title="Send reminder"
-                              >
-                                <Send size={14} />
-                              </button>
-                            )}
                           </div>
                         </td>
                       </tr>
