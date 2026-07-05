@@ -4,13 +4,14 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Nav from "@/components/Nav";
 import { inr } from "@/lib/finance";
-import { Plus, X, HandCoins, ArrowLeftRight, Clock, MessageCircle, Check } from "lucide-react";
+import { Plus, X, HandCoins, ArrowLeftRight, Clock, MessageCircle, Check, Send, Edit2, Trash2, Eye } from "lucide-react";
 
 type LendingRow = {
   id: string;
   person_name: string;
   whatsapp_number: string | null;
   amount: number;
+  paid_amount: number;
   type: "lend" | "settle";
   date: string;
   created_at: string;
@@ -31,10 +32,20 @@ export default function LendingPage() {
   const router = useRouter();
   const [rows, setRows] = useState<LendingRow[]>([]);
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ person_name: "", whatsapp_number: "", amount: "", type: "lend" as "lend" | "settle", date: new Date().toISOString().slice(0, 10) });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [viewingPerson, setViewingPerson] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    person_name: "",
+    whatsapp_number: "",
+    amount: "",
+    paid_amount: "",
+    type: "lend" as "lend" | "settle",
+    date: new Date().toISOString().slice(0, 10),
+  });
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [lastEntry, setLastEntry] = useState<{ person_name: string; whatsapp_number: string | null; amount: number; type: string; remaining: number } | null>(null);
+  const [lastEntry, setLastEntry] = useState<LendingRow | null>(null);
+  const [showWhatsAppPrompt, setShowWhatsAppPrompt] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -55,63 +66,108 @@ export default function LendingPage() {
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
 
-    // Calculate remaining before insert
-    const personEntries = rows.filter(r => r.person_name === form.person_name);
-    const currentRemaining = personEntries.reduce((sum, r) => {
-      return sum + (r.type === "lend" ? r.amount : -r.amount);
-    }, 0);
-    const newRemaining = currentRemaining + (form.type === "lend" ? Number(form.amount) : -Number(form.amount));
+    const paidAmt = Number(form.paid_amount) || 0;
+    const totalAmt = Number(form.amount);
 
-    const { data: insertedData, error: insertError } = await supabase
-      .from("lending")
-      .insert({
-        person_name: form.person_name.trim(),
-        whatsapp_number: form.whatsapp_number.trim() || null,
-        amount: Number(form.amount),
-        type: form.type,
-        date: form.date,
-        created_by: user?.id,
-      })
-      .select();
+    if (editingId) {
+      const { error } = await supabase
+        .from("lending")
+        .update({
+          person_name: form.person_name.trim(),
+          whatsapp_number: form.whatsapp_number.trim() || null,
+          amount: totalAmt,
+          paid_amount: paidAmt,
+          type: form.type,
+          date: form.date,
+        })
+        .eq("id", editingId);
 
-    if (insertError) {
-      console.error("Failed to insert lending entry:", insertError);
-      alert(`Failed to save entry: ${insertError.message}`);
-      setSaving(false);
-      return;
+      if (error) {
+        alert(`Failed to update: ${error.message}`);
+        setSaving(false);
+        return;
+      }
+      setEditingId(null);
+    } else {
+      const { data: insertedData, error: insertError } = await supabase
+        .from("lending")
+        .insert({
+          person_name: form.person_name.trim(),
+          whatsapp_number: form.whatsapp_number.trim() || null,
+          amount: totalAmt,
+          paid_amount: paidAmt,
+          type: form.type,
+          date: form.date,
+          created_by: user?.id,
+        })
+        .select();
+
+      if (insertError) {
+        alert(`Failed to save: ${insertError.message}`);
+        setSaving(false);
+        return;
+      }
+
+      if (insertedData && insertedData.length > 0) {
+        setLastEntry(insertedData[0]);
+        if (insertedData[0].whatsapp_number) {
+          setShowWhatsAppPrompt(true);
+        }
+      }
     }
 
-    if (!insertedData || insertedData.length === 0) {
-      console.error("No data returned from insert");
-      alert("Failed to save entry: no data returned");
-      setSaving(false);
-      return;
-    }
-
-    const savedEntry = insertedData[0];
-
-    setLastEntry({
-      person_name: savedEntry.person_name,
-      whatsapp_number: savedEntry.whatsapp_number,
-      amount: savedEntry.amount,
-      type: savedEntry.type,
-      remaining: newRemaining,
+    setForm({
+      person_name: "",
+      whatsapp_number: "",
+      amount: "",
+      paid_amount: "",
+      type: "lend",
+      date: new Date().toISOString().slice(0, 10),
     });
-
-    setForm({ person_name: "", whatsapp_number: "", amount: "", type: "lend", date: new Date().toISOString().slice(0, 10) });
     setSaving(false);
     await load();
   }
 
-  // Auto-populate WhatsApp number when person name changes
-  function handlePersonNameChange(name: string) {
-    setForm({ ...form, person_name: name });
-    const existing = rows.find(r => r.person_name === name && r.whatsapp_number);
-    if (existing) {
-      setForm(prev => ({ ...prev, person_name: name, whatsapp_number: existing.whatsapp_number || "" }));
-    } else {
-      setForm(prev => ({ ...prev, person_name: name, whatsapp_number: prev.whatsapp_number }));
+  function startEdit(row: LendingRow) {
+    setEditingId(row.id);
+    setForm({
+      person_name: row.person_name,
+      whatsapp_number: row.whatsapp_number || "",
+      amount: String(row.amount),
+      paid_amount: String(row.paid_amount),
+      type: row.type,
+      date: row.date,
+    });
+    setShowAdd(true);
+  }
+
+  async function deleteEntry(id: string) {
+    if (!confirm("Are you sure you want to delete this entry?")) return;
+    const { error } = await supabase.from("lending").delete().eq("id", id);
+    if (error) {
+      alert(`Failed to delete: ${error.message}`);
+      return;
     }
+    await load();
+  }
+
+  function sendWhatsApp(entry: LendingRow) {
+    if (!entry.whatsapp_number) return;
+    const phone = entry.whatsapp_number.replace(/\D/g, "");
+    const remaining = entry.amount - entry.paid_amount;
+    const actionText = entry.type === "lend" ? "सोडवले" : "परत मिळाले";
+    const message = `नमस्कार ${entry.person_name}, या ${new Date(entry.date).toLocaleDateString("en-IN")} रोजी तुमच्याकडून ₹${entry.amount.toLocaleString("en-IN")} ${entry.type === 'lend' ? 'उधारी घेतली' : 'परत केली'}. बाकी रक्कम ₹${remaining.toLocaleString("en-IN")} आहे. कृपया लवकरच पayment करण्यासाठी संपर्क करा.`;
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank");
+  }
+
+  function sendFollowUpWhatsApp(entry: LendingRow) {
+    if (!entry.whatsapp_number) return;
+    const phone = entry.whatsapp_number.replace(/\D/g, "");
+    const remaining = entry.amount - entry.paid_amount;
+    const message = `नमस्कार ${entry.person_name}, ही एक फॉलो-अप संदेश आहे. तुमच्याकडून ₹${remaining.toLocaleString("en-IN")} बाकी आहे. कृपया लवकरच पayment करण्यासाठी संपर्क करा.`;
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank");
   }
 
   // Compute per-person summary
@@ -141,15 +197,7 @@ export default function LendingPage() {
   }).sort((a, b) => b.remaining - a.remaining);
 
   const uniqueNames = Array.from(new Set(rows.map((r) => r.person_name))).sort();
-
-  function sendWhatsApp(entry: { person_name: string; whatsapp_number: string | null; amount: number; type: string; remaining: number }) {
-    if (!entry.whatsapp_number) return;
-    const phone = entry.whatsapp_number.replace(/\D/g, "");
-    const actionText = entry.type === "lend" ? "Lent" : "Settled";
-    const message = `Hi ${entry.person_name}, this is regarding your ${actionText.toLowerCase()} of ₹${entry.amount.toLocaleString("en-IN")} dated ${new Date().toLocaleDateString("en-IN")}. Your remaining balance is ₹${entry.remaining.toLocaleString("en-IN")}.`;
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-    window.open(url, "_blank");
-  }
+  const filteredRows = viewingPerson ? rows.filter((r) => r.person_name === viewingPerson) : rows;
 
   if (loading) return <div className="flex items-center justify-center min-h-screen"><p className="text-masala-brown/50">Loading...</p></div>;
 
@@ -162,143 +210,12 @@ export default function LendingPage() {
             <h1 className="text-2xl font-bold">Lending</h1>
             <p className="text-masala-brown/60 text-sm">Track money lent and settled</p>
           </div>
-          <button onClick={() => setShowAdd(true)} className="btn-primary flex items-center gap-1">
+          <button onClick={() => { setShowAdd(true); setEditingId(null); }} className="btn-primary flex items-center gap-1">
             <Plus size={16} /> Add Entry
           </button>
         </div>
 
-        {/* Add entry modal */}
-        {showAdd && (
-          <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center" onClick={() => setShowAdd(false)}>
-            <div className="absolute inset-0 bg-black/40" />
-            <div className="relative bg-masala-cream w-full md:max-w-sm rounded-t-2xl md:rounded-2xl p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-lg">Lending Entry</h3>
-                <button onClick={() => setShowAdd(false)} className="p-1 hover:text-masala-red"><X size={20} /></button>
-              </div>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Type selector */}
-                <div className="grid grid-cols-2 gap-2">
-                  {(["lend", "settle"] as const).map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setForm({ ...form, type: t })}
-                      className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-medium transition-all ${
-                        form.type === t
-                          ? t === "lend"
-                            ? "border-masala-red bg-masala-red/5 text-masala-red"
-                            : "border-green-600 bg-green-50 text-green-700"
-                          : "border-masala-brown/10 text-masala-brown/60 hover:border-masala-brown/30"
-                      }`}
-                    >
-                      {t === "lend" ? <HandCoins size={18} /> : <ArrowLeftRight size={18} />}
-                      {t === "lend" ? "Lend" : "Settle"}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Person name */}
-                <div>
-                  <label className="text-sm font-medium">Person Name</label>
-                  <div className="relative mt-1">
-                    <input
-                      className="input"
-                      list="person-list"
-                      value={form.person_name}
-                      onChange={(e) => handlePersonNameChange(e.target.value)}
-                      required
-                      placeholder="Enter or select name"
-                    />
-                    <datalist id="person-list">
-                      {uniqueNames.map((n) => <option key={n} value={n} />)}
-                    </datalist>
-                  </div>
-                </div>
-
-                {/* WhatsApp number */}
-                <div>
-                  <label className="text-sm font-medium">WhatsApp Number (optional)</label>
-                  <input className="input mt-1" type="tel" placeholder="e.g. 9876543210"
-                    value={form.whatsapp_number} onChange={(e) => setForm({ ...form, whatsapp_number: e.target.value })} />
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium">Amount (₹)</label>
-                  <input className="input mt-1" type="number" required min="0" step="0.01" placeholder="0.00"
-                    value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Date</label>
-                  <input className="input mt-1" type="date" required
-                    value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
-                </div>
-                <button className="btn-primary w-full py-3" disabled={saving}>
-                  {saving ? "Saving..." : form.type === "lend" ? "Add Lend" : "Add Settle"}
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* WhatsApp notification after adding entry */}
-        {lastEntry && lastEntry.whatsapp_number && (
-          <div className="card p-4 border-2 border-green-200 bg-green-50/50">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                <Check size={20} className="text-green-700" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-green-900 mb-1">Entry added successfully!</h3>
-                <p className="text-sm text-green-700 mb-3">
-                  {lastEntry.type === "lend" ? "Lent" : "Settled"} ₹{lastEntry.amount.toLocaleString("en-IN")} to {lastEntry.person_name}
-                  {lastEntry.remaining !== 0 && ` • Remaining: ₹${lastEntry.remaining.toLocaleString("en-IN")}`}
-                </p>
-                <button
-                  onClick={() => sendWhatsApp(lastEntry)}
-                  className="btn-primary bg-green-600 hover:bg-green-700 flex items-center gap-2"
-                >
-                  <MessageCircle size={18} /> Send WhatsApp Message
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Summary table */}
-        {summaries.length > 0 && (
-          <div className="card p-4 md:p-5">
-            <h3 className="font-semibold mb-3">Lending Summary</h3>
-            <div className="overflow-x-auto">
-              <table className="data-table w-full min-w-[500px]">
-                <thead>
-                  <tr>
-                    <th className="px-3">Name</th>
-                    <th className="px-3 text-right">Lent</th>
-                    <th className="px-3 text-right">Got Back</th>
-                    <th className="px-3 text-right">Remaining</th>
-                    <th className="px-3 text-right">Days</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {summaries.map((s) => (
-                    <tr key={s.name}>
-                      <td className="px-3 text-sm font-medium">{s.name}</td>
-                      <td className="px-3 text-right text-sm">{inr(s.totalLent)}</td>
-                      <td className="px-3 text-right text-sm text-green-700">{inr(s.totalSettled)}</td>
-                      <td className={`px-3 text-right text-sm font-medium ${s.remaining > 0 ? "text-masala-red" : "text-green-600"}`}>
-                        {inr(s.remaining)}
-                      </td>
-                      <td className="px-3 text-right text-sm">{s.daysSince}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* Summary cards */}
+        {/* Person-wise widgets */}
         {summaries.length > 0 && (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {summaries.map((s) => (
@@ -337,25 +254,152 @@ export default function LendingPage() {
                     <span className="font-medium">{s.daysSince} days</span>
                   </div>
                 </div>
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={() => setViewingPerson(viewingPerson === s.name ? null : s.name)}
+                    className="flex-1 text-xs py-2 rounded-lg border border-masala-brown/20 hover:bg-masala-brown/5 flex items-center justify-center gap-1"
+                  >
+                    <Eye size={14} /> {viewingPerson === s.name ? "Show All" : "View History"}
+                  </button>
+                  {s.remaining > 0 && s.whatsapp_number && (
+                    <button
+                      onClick={() => sendFollowUpWhatsApp(rows.find((r) => r.person_name === s.name)!)}
+                      className="px-3 py-2 rounded-lg bg-green-50 text-green-700 hover:bg-green-100"
+                      title="Send reminder"
+                    >
+                      <Send size={14} />
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
         )}
 
-        {summaries.length === 0 && (
-          <div className="text-center py-12 text-masala-brown/50">
-            <HandCoins size={40} className="mx-auto mb-3 opacity-50" />
-            <p>No lending entries yet.</p>
-            <button onClick={() => setShowAdd(true)} className="btn-primary mt-4 inline-flex items-center gap-1">
-              <Plus size={16} /> Add your first lending entry
-            </button>
+        {/* Add/Edit entry modal */}
+        {showAdd && (
+          <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center" onClick={() => { setShowAdd(false); setEditingId(null); }}>
+            <div className="absolute inset-0 bg-black/40" />
+            <div className="relative bg-masala-cream w-full md:max-w-sm rounded-t-2xl md:rounded-2xl p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-lg">{editingId ? "Edit Entry" : "Lending Entry"}</h3>
+                <button onClick={() => { setShowAdd(false); setEditingId(null); }} className="p-1 hover:text-masala-red"><X size={20} /></button>
+              </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Type selector */}
+                <div className="grid grid-cols-2 gap-2">
+                  {(["lend", "settle"] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setForm({ ...form, type: t })}
+                      className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 text-sm font-medium transition-all ${
+                        form.type === t
+                          ? t === "lend"
+                            ? "border-masala-red bg-masala-red/5 text-masala-red"
+                            : "border-green-600 bg-green-50 text-green-700"
+                          : "border-masala-brown/10 text-masala-brown/60 hover:border-masala-brown/30"
+                      }`}
+                    >
+                      {t === "lend" ? <HandCoins size={18} /> : <ArrowLeftRight size={18} />}
+                      {t === "lend" ? "Lend" : "Settle"}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Person name */}
+                <div>
+                  <label className="text-sm font-medium">Person Name</label>
+                  <div className="relative mt-1">
+                    <input
+                      className="input"
+                      list="person-list"
+                      value={form.person_name}
+                      onChange={(e) => setForm({ ...form, person_name: e.target.value })}
+                      required
+                      placeholder="Enter or select name"
+                    />
+                    <datalist id="person-list">
+                      {uniqueNames.map((n) => <option key={n} value={n} />)}
+                    </datalist>
+                  </div>
+                </div>
+
+                {/* WhatsApp number */}
+                <div>
+                  <label className="text-sm font-medium">WhatsApp Number (optional)</label>
+                  <input className="input mt-1" type="tel" placeholder="e.g. 9876543210"
+                    value={form.whatsapp_number} onChange={(e) => setForm({ ...form, whatsapp_number: e.target.value })} />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Amount (₹)</label>
+                  <input className="input mt-1" type="number" required min="0" step="0.01" placeholder="0.00"
+                    value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Paid Amount (₹)</label>
+                  <input className="input mt-1" type="number" min="0" step="0.01" placeholder="0.00"
+                    value={form.paid_amount} onChange={(e) => setForm({ ...form, paid_amount: e.target.value })} />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Date</label>
+                  <input className="input mt-1" type="date" required
+                    value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+                </div>
+
+                <button className="btn-primary w-full py-3" disabled={saving}>
+                  {saving ? "Saving..." : editingId ? "Update Entry" : "Add Entry"}
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* WhatsApp notification after adding entry */}
+        {showWhatsAppPrompt && lastEntry && lastEntry.whatsapp_number && (
+          <div className="card p-4 border-2 border-green-200 bg-green-50/50">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                <Check size={20} className="text-green-700" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-green-900 mb-1">Entry added successfully!</h3>
+                <p className="text-sm text-green-700 mb-3">
+                  {lastEntry.type === "lend" ? "Lent" : "Settled"} ₹{lastEntry.amount.toLocaleString("en-IN")} to {lastEntry.person_name}
+                </p>
+                <button
+                  onClick={() => { sendWhatsApp(lastEntry); setShowWhatsAppPrompt(false); }}
+                  className="btn-primary bg-green-600 hover:bg-green-700 flex items-center gap-2"
+                >
+                  <MessageCircle size={18} /> Send WhatsApp Notification
+                </button>
+                <button
+                  onClick={() => setShowWhatsAppPrompt(false)}
+                  className="ml-2 px-4 py-2 text-sm text-masala-brown/60 hover:text-masala-brown"
+                >
+                  Skip
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
         {/* All transactions table */}
-        {rows.length > 0 && (
+        {filteredRows.length > 0 && (
           <div className="card p-4 md:p-5">
-            <h3 className="font-semibold mb-3">All transactions</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold">
+                {viewingPerson ? `${viewingPerson} - Transaction History` : "All Transactions"}
+              </h3>
+              {viewingPerson && (
+                <button onClick={() => setViewingPerson(null)} className="text-sm text-masala-brown/60 hover:text-masala-brown">
+                  Show All
+                </button>
+              )}
+            </div>
             <div className="overflow-x-auto">
               <table className="data-table w-full min-w-[500px]">
                 <thead>
@@ -364,26 +408,71 @@ export default function LendingPage() {
                     <th className="px-3">Person</th>
                     <th className="px-3">Type</th>
                     <th className="px-3 text-right">Amount</th>
+                    <th className="px-3 text-right">Paid</th>
+                    <th className="px-3 text-right">Balance</th>
+                    <th className="px-3 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((r) => (
-                    <tr key={r.id}>
-                      <td className="px-3 whitespace-nowrap text-sm">{new Date(r.date).toLocaleDateString("en-IN")}</td>
-                      <td className="px-3 text-sm font-medium">{r.person_name}</td>
-                      <td className="px-3 text-sm">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                          r.type === "lend" ? "bg-masala-red/10 text-masala-red" : "bg-green-50 text-green-700"
-                        }`}>
-                          {r.type === "lend" ? "Lent" : "Settled"}
-                        </span>
-                      </td>
-                      <td className="px-3 text-right whitespace-nowrap text-sm font-medium">{inr(r.amount)}</td>
-                    </tr>
-                  ))}
+                  {filteredRows.map((r) => {
+                    const balance = r.amount - r.paid_amount;
+                    return (
+                      <tr key={r.id}>
+                        <td className="px-3 whitespace-nowrap text-sm">{new Date(r.date).toLocaleDateString("en-IN")}</td>
+                        <td className="px-3 text-sm font-medium">{r.person_name}</td>
+                        <td className="px-3 text-sm">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                            r.type === "lend" ? "bg-masala-red/10 text-masala-red" : "bg-green-50 text-green-700"
+                          }`}>
+                            {r.type === "lend" ? "Lent" : "Settled"}
+                          </span>
+                        </td>
+                        <td className="px-3 text-right whitespace-nowrap text-sm">{inr(r.amount)}</td>
+                        <td className="px-3 text-right whitespace-nowrap text-sm text-green-700">{inr(r.paid_amount)}</td>
+                        <td className="px-3 text-right whitespace-nowrap text-sm font-medium text-masala-red">{inr(balance)}</td>
+                        <td className="px-3 text-center whitespace-nowrap">
+                          <div className="flex items-center justify-center gap-1">
+                            <button
+                              onClick={() => startEdit(r)}
+                              className="p-1.5 rounded-md hover:bg-blue-50 text-masala-brown/60 hover:text-blue-700"
+                              title="Edit"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                            <button
+                              onClick={() => deleteEntry(r.id)}
+                              className="p-1.5 rounded-md hover:bg-red-50 text-masala-brown/60 hover:text-masala-red"
+                              title="Delete"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                            {r.whatsapp_number && (
+                              <button
+                                onClick={() => sendFollowUpWhatsApp(r)}
+                                className="p-1.5 rounded-md hover:bg-green-50 text-masala-brown/60 hover:text-green-700"
+                                title="Send reminder"
+                              >
+                                <Send size={14} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {summaries.length === 0 && (
+          <div className="text-center py-12 text-masala-brown/50">
+            <HandCoins size={40} className="mx-auto mb-3 opacity-50" />
+            <p>No lending entries yet.</p>
+            <button onClick={() => { setShowAdd(true); setEditingId(null); }} className="btn-primary mt-4 inline-flex items-center gap-1">
+              <Plus size={16} /> Add your first lending entry
+            </button>
           </div>
         )}
       </main>
