@@ -62,26 +62,45 @@ export default function LendingPage() {
     }, 0);
     const newRemaining = currentRemaining + (form.type === "lend" ? Number(form.amount) : -Number(form.amount));
 
-    await supabase.from("lending").insert({
-      person_name: form.person_name.trim(),
-      whatsapp_number: form.whatsapp_number.trim() || null,
-      amount: Number(form.amount),
-      type: form.type,
-      date: form.date,
-      created_by: user?.id,
-    });
+    const { data: insertedData, error: insertError } = await supabase
+      .from("lending")
+      .insert({
+        person_name: form.person_name.trim(),
+        whatsapp_number: form.whatsapp_number.trim() || null,
+        amount: Number(form.amount),
+        type: form.type,
+        date: form.date,
+        created_by: user?.id,
+      })
+      .select();
+
+    if (insertError) {
+      console.error("Failed to insert lending entry:", insertError);
+      alert(`Failed to save entry: ${insertError.message}`);
+      setSaving(false);
+      return;
+    }
+
+    if (!insertedData || insertedData.length === 0) {
+      console.error("No data returned from insert");
+      alert("Failed to save entry: no data returned");
+      setSaving(false);
+      return;
+    }
+
+    const savedEntry = insertedData[0];
 
     setLastEntry({
-      person_name: form.person_name.trim(),
-      whatsapp_number: form.whatsapp_number.trim() || null,
-      amount: Number(form.amount),
-      type: form.type,
+      person_name: savedEntry.person_name,
+      whatsapp_number: savedEntry.whatsapp_number,
+      amount: savedEntry.amount,
+      type: savedEntry.type,
       remaining: newRemaining,
     });
 
     setForm({ person_name: "", whatsapp_number: "", amount: "", type: "lend", date: new Date().toISOString().slice(0, 10) });
     setSaving(false);
-    load();
+    await load();
   }
 
   // Auto-populate WhatsApp number when person name changes
