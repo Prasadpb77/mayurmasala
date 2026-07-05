@@ -39,6 +39,19 @@ export default function PurchaseVendorsPage() {
   const [lastEntry, setLastEntry] = useState<VendorRow | null>(null);
   const [showWhatsAppPrompt, setShowWhatsAppPrompt] = useState(false);
 
+  // Auto-fill vendor details when vendor name changes
+  useEffect(() => {
+    if (form.vendor_name && rows.length > 0) {
+      const existingVendor = rows.find(r => r.vendor_name === form.vendor_name);
+      if (existingVendor) {
+        setForm(prev => ({
+          ...prev,
+          whatsapp_number: existingVendor.whatsapp_number || prev.whatsapp_number,
+        }));
+      }
+    }
+  }, [form.vendor_name, rows]);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session?.user) return router.replace("/login");

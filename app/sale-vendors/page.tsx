@@ -39,14 +39,16 @@ export default function SaleVendorsPage() {
   const [lastEntry, setLastEntry] = useState<VendorRow | null>(null);
   const [showWhatsAppPrompt, setShowWhatsAppPrompt] = useState(false);
 
-  // Auto-fill remaining balance when vendor name changes
+  // Auto-fill vendor details when vendor name changes
   useEffect(() => {
     if (form.vendor_name && rows.length > 0) {
-      const vendorRows = rows.filter(r => r.vendor_name === form.vendor_name);
-      const total = vendorRows.reduce((sum, r) => sum + r.amount, 0);
-      const paid = vendorRows.reduce((sum, r) => sum + r.paid_amount, 0);
-      const remaining = total - paid;
-      // This remaining balance can be displayed in the UI
+      const existingVendor = rows.find(r => r.vendor_name === form.vendor_name);
+      if (existingVendor) {
+        setForm(prev => ({
+          ...prev,
+          whatsapp_number: existingVendor.whatsapp_number || prev.whatsapp_number,
+        }));
+      }
     }
   }, [form.vendor_name, rows]);
 

@@ -38,7 +38,6 @@ export default function LendingPage() {
     person_name: "",
     whatsapp_number: "",
     amount: "",
-    paid_amount: "",
     type: "lend" as "lend" | "settle",
     date: new Date().toISOString().slice(0, 10),
   });
@@ -66,7 +65,6 @@ export default function LendingPage() {
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
 
-    const paidAmt = Number(form.paid_amount) || 0;
     const totalAmt = Number(form.amount);
 
     if (editingId) {
@@ -76,7 +74,6 @@ export default function LendingPage() {
           person_name: form.person_name.trim(),
           whatsapp_number: form.whatsapp_number.trim() || null,
           amount: totalAmt,
-          paid_amount: paidAmt,
           type: form.type,
           date: form.date,
         })
@@ -95,7 +92,6 @@ export default function LendingPage() {
           person_name: form.person_name.trim(),
           whatsapp_number: form.whatsapp_number.trim() || null,
           amount: totalAmt,
-          paid_amount: paidAmt,
           type: form.type,
           date: form.date,
           created_by: user?.id,
@@ -120,7 +116,6 @@ export default function LendingPage() {
       person_name: "",
       whatsapp_number: "",
       amount: "",
-      paid_amount: "",
       type: "lend",
       date: new Date().toISOString().slice(0, 10),
     });
@@ -134,7 +129,6 @@ export default function LendingPage() {
       person_name: row.person_name,
       whatsapp_number: row.whatsapp_number || "",
       amount: String(row.amount),
-      paid_amount: String(row.paid_amount),
       type: row.type,
       date: row.date,
     });
@@ -335,12 +329,6 @@ export default function LendingPage() {
                   <label className="text-sm font-medium">Amount (₹)</label>
                   <input className="input mt-1" type="number" required min="0" step="0.01" placeholder="0.00"
                     value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium">Paid Amount (₹)</label>
-                  <input className="input mt-1" type="number" min="0" step="0.01" placeholder="0.00"
-                    value={form.paid_amount} onChange={(e) => setForm({ ...form, paid_amount: e.target.value })} />
                 </div>
 
                 <div>
