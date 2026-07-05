@@ -313,9 +313,15 @@ export default function SaleVendorsPage() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium">Amount (₹)</label>
+                  <label className="text-sm font-medium">Total Amount (₹)</label>
                   <input className="input mt-1" type="number" required min="0" step="0.01" placeholder="0.00"
                     value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Paid Amount (₹)</label>
+                  <input className="input mt-1" type="number" min="0" step="0.01" placeholder="0.00"
+                    value={form.paid_amount} onChange={(e) => setForm({ ...form, paid_amount: e.target.value })} />
                 </div>
 
                 {form.vendor_name && (() => {
