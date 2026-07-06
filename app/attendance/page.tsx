@@ -98,12 +98,12 @@ export default function AttendancePage() {
   }
 
   return (
-    <div className="flex">
+    <div className="flex flex-col md:flex-row min-h-screen">
       <Nav />
-      <main className="flex-1 p-4 md:p-6 space-y-6">
+      <main className="flex-1 p-4 md:p-6 space-y-5 pb-24">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-2xl font-bold">Attendance</h1>
+            <h1 className="text-xl md:text-2xl font-bold">Attendance</h1>
             <p className="text-masala-brown/60 text-sm">{monthLabel}</p>
           </div>
           <div className="flex gap-2">
@@ -136,17 +136,17 @@ export default function AttendancePage() {
 
         {/* Add staff modal */}
         {showAdd && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={() => setShowAdd(false)}>
-            <div className="absolute inset-0 bg-black/40" />
-            <div className="relative bg-masala-cream rounded-2xl p-6 shadow-2xl w-full max-w-sm mx-4" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-4">
+          <div className="sheet-overlay" onClick={() => setShowAdd(false)}>
+            <div className="sheet-panel animate-sheetUp" onClick={(e) => e.stopPropagation()}>
+              <div className="sheet-drag-handle" />
+              <div className="sheet-header">
                 <h3 className="font-bold text-lg">Add Staff</h3>
-                <button onClick={() => setShowAdd(false)} className="tap-target -mr-1 hover:text-masala-red"><X size={20} /></button>
+                <button onClick={() => setShowAdd(false)} className="tap-target -mr-2 text-masala-brown/50 hover:text-masala-red"><X size={20} /></button>
               </div>
-              <form onSubmit={(e) => { e.preventDefault(); addStaff(); }} className="space-y-4">
+              <form onSubmit={(e) => { e.preventDefault(); addStaff(); }} className="sheet-body pb-6">
                 <div>
-                  <label className="text-sm font-medium">Name</label>
-                  <input className="input mt-1" value={newName} autoFocus
+                  <label className="field-label">Name</label>
+                  <input className="input" value={newName} autoFocus
                     onChange={(e) => setNewName(e.target.value)} required placeholder="Staff name" />
                 </div>
                 <button className="btn-primary w-full" disabled={saving}>

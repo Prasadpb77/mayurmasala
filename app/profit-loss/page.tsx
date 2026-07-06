@@ -105,11 +105,11 @@ export default function ProfitLossPage() {
   const thisMonthNet = thisMonthRow.sale - thisMonthRow.purchase - thisMonthRow.expense;
 
   return (
-    <div className="flex">
+    <div className="flex flex-col md:flex-row min-h-screen">
       <Nav />
-      <main className="flex-1 p-4 md:p-6 space-y-6">
+      <main className="flex-1 p-4 md:p-6 space-y-5 pb-24">
         <div>
-          <h1 className="text-2xl font-bold">Profit & Loss</h1>
+          <h1 className="text-xl md:text-2xl font-bold">Profit & Loss</h1>
           <p className="text-masala-brown/60 text-sm">Net = Sales − Purchase − Expense</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

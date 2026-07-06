@@ -80,14 +80,14 @@ export default function DashboardPage() {
   const fyNet = fySale - fyPurchase - fyExpense;
 
   return (
-    <div className="flex">
+    <div className="flex flex-col md:flex-row min-h-screen">
       <Nav />
-      <main className="flex-1 p-4 md:p-6 space-y-6">
+      <main className="flex-1 p-4 md:p-6 space-y-5 pb-24">
         <div>
-          <h1 className="text-2xl font-bold">Overview</h1>
-          <p className="text-masala-brown/60 text-sm">Financial year {fy}</p>
+          <h1 className="text-xl md:text-2xl font-bold">Overview</h1>
+          <p className="text-masala-brown/60 text-xs md:text-sm">Financial year {fy}</p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           <KpiCard label="This month — Sales" value={monthSale} icon={TrendingUp} />
           <KpiCard label="This month — Purchases" value={monthPurchase} icon={TrendingDown} />
           <KpiCard label="This month — Expenses" value={monthExpense} icon={Wallet} />

@@ -6,6 +6,7 @@ import Nav from "@/components/Nav";
 import { inr } from "@/lib/finance";
 import { Plus, X, MessageCircle, Check, Send, Edit2, Trash2, Eye } from "lucide-react";
 import NameDropdown from "@/components/NameDropdown";
+import { saleVendorEntryMessage, saleVendorFollowUpMessage, whatsappLink } from "@/lib/whatsapp";
 
 type VendorRow = {
   id: string;
@@ -40,6 +41,7 @@ export default function SaleVendorsPage() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [lastEntry, setLastEntry] = useState<VendorRow | null>(null);
+  const [lastRemaining, setLastRemaining] = useState(0);
   const [showWhatsAppPrompt, setShowWhatsAppPrompt] = useState(false);
 
   // Auto-fill vendor details when vendor name changes
@@ -69,6 +71,20 @@ export default function SaleVendorsPage() {
       .order("date", { ascending: false });
     setRows(data || []);
     setLoading(false);
+  }
+
+  function resetForm() {
+    setForm({
+      vendor_name: "",
+      whatsapp_number: "",
+      description: "",
+      bill_no: "",
+      amount: "",
+      paid_amount: "",
+      status: "unpaid",
+      date: new Date().toISOString().slice(0, 10),
+    });
+    setEditingId(null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -104,48 +120,49 @@ export default function SaleVendorsPage() {
         setSaving(false);
         return;
       }
-      setEditingId(null);
-    } else {
-      const { data: insertedData, error: insertError } = await supabase
-        .from("sale_vendors")
-        .insert({
-          vendor_name: form.vendor_name.trim(),
-          whatsapp_number: form.whatsapp_number.trim() || null,
-          description: form.description.trim() || null,
-          bill_no: form.bill_no.trim() || null,
-          amount: totalAmt,
-          paid_amount: paidAmt,
-          status,
-          date: form.date,
-          created_by: user?.id,
-        })
-        .select();
-
-      if (insertError) {
-        alert(`Failed to save: ${insertError.message}`);
-        setSaving(false);
-        return;
-      }
-
-      if (insertedData && insertedData.length > 0) {
-        setLastEntry(insertedData[0]);
-        if (insertedData[0].whatsapp_number) {
-          setShowWhatsAppPrompt(true);
-        }
-      }
+      setSaving(false);
+      resetForm();
+      setShowAdd(false);
+      await load();
+      return;
     }
 
-    setForm({
-      vendor_name: "",
-      whatsapp_number: "",
-      description: "",
-      bill_no: "",
-      amount: "",
-      paid_amount: "",
-      status: "unpaid",
-      date: new Date().toISOString().slice(0, 10),
-    });
+    const { data: insertedData, error: insertError } = await supabase
+      .from("sale_vendors")
+      .insert({
+        vendor_name: form.vendor_name.trim(),
+        whatsapp_number: form.whatsapp_number.trim() || null,
+        description: form.description.trim() || null,
+        bill_no: form.bill_no.trim() || null,
+        amount: totalAmt,
+        paid_amount: paidAmt,
+        status,
+        date: form.date,
+        created_by: user?.id,
+      })
+      .select();
+
+    if (insertError) {
+      alert(`Failed to save: ${insertError.message}`);
+      setSaving(false);
+      return;
+    }
+
     setSaving(false);
+    setShowAdd(false); // always close the popup once the entry is saved
+
+    if (insertedData && insertedData.length > 0) {
+      const entry = insertedData[0] as VendorRow;
+      setLastEntry(entry);
+      // Work out this vendor's TOTAL outstanding balance (across all their entries), so the
+      // WhatsApp message reflects their real current balance, not just this one transaction.
+      const vendorRows = [...rows.filter(r => r.vendor_name === entry.vendor_name), entry];
+      const totalRemaining = vendorRows.reduce((s, r) => s + (r.amount - r.paid_amount), 0);
+      setLastRemaining(totalRemaining);
+      if (entry.whatsapp_number) setShowWhatsAppPrompt(true);
+    }
+
+    resetForm();
     await load();
   }
 
@@ -174,31 +191,31 @@ export default function SaleVendorsPage() {
     await load();
   }
 
-  function sendWhatsApp(entry: VendorRow) {
+  function sendWhatsApp(entry: VendorRow, remaining: number) {
     if (!entry.whatsapp_number) return;
-    const phone = entry.whatsapp_number.replace(/\D/g, "");
-    const remaining = entry.amount - entry.paid_amount;
-    const message = `नमस्कार ${entry.vendor_name}, या ${new Date(entry.date).toLocaleDateString("en-IN")} रोजी ₹${entry.amount.toLocaleString("en-IN")} ची विक्री करण्यात आली होती. सदर बाकी रक्कम ₹${remaining.toLocaleString("en-IN")} आहे. कृपया लवकरच पayment पाठवण्यासाठी संपर्क करा.`;
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-    window.open(url, "_blank");
+    const message = saleVendorEntryMessage({
+      vendor_name: entry.vendor_name,
+      amount: entry.amount,
+      remaining,
+      bill_no: entry.bill_no,
+      date: entry.date,
+    });
+    window.open(whatsappLink(entry.whatsapp_number, message), "_blank");
   }
 
-  function sendFollowUpWhatsApp(entry: VendorRow) {
-    if (!entry.whatsapp_number) return;
-    const phone = entry.whatsapp_number.replace(/\D/g, "");
-    const remaining = entry.amount - entry.paid_amount;
-    const message = `नमस्कार ${entry.vendor_name}, ही एक फॉलो-अप संदेश आहे. तुमच्याकडून ₹${remaining.toLocaleString("en-IN")} बाकी आहे. कृपया लवकरच पayment पाठवण्यासाठी संपर्क करा.`;
-    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-    window.open(url, "_blank");
+  function sendFollowUpWhatsApp(vendorName: string, remaining: number, whatsapp: string) {
+    const message = saleVendorFollowUpMessage({ vendor_name: vendorName, remaining });
+    window.open(whatsappLink(whatsapp, message), "_blank");
   }
 
   // Vendor-wise summary
-  const vendorMap = new Map<string, { total: number; paid: number; count: number }>();
+  const vendorMap = new Map<string, { total: number; paid: number; count: number; whatsapp_number: string | null }>();
   rows.forEach((r) => {
-    const v = vendorMap.get(r.vendor_name) || { total: 0, paid: 0, count: 0 };
+    const v = vendorMap.get(r.vendor_name) || { total: 0, paid: 0, count: 0, whatsapp_number: r.whatsapp_number };
     v.total += r.amount;
     v.paid += r.paid_amount;
     v.count += 1;
+    if (!v.whatsapp_number && r.whatsapp_number) v.whatsapp_number = r.whatsapp_number;
     vendorMap.set(r.vendor_name, v);
   });
 
@@ -208,6 +225,7 @@ export default function SaleVendorsPage() {
     paid: data.paid,
     remaining: data.total - data.paid,
     count: data.count,
+    whatsapp_number: data.whatsapp_number,
   })).sort((a, b) => b.remaining - a.remaining);
 
   const uniqueVendors = Array.from(new Set(rows.map((r) => r.vendor_name))).sort();
@@ -216,15 +234,15 @@ export default function SaleVendorsPage() {
   if (loading) return <div className="flex items-center justify-center min-h-screen"><p className="text-masala-brown/50">Loading...</p></div>;
 
   return (
-    <div className="flex">
+    <div className="flex flex-col md:flex-row min-h-screen">
       <Nav />
-      <main className="flex-1 p-4 md:p-6 space-y-6">
+      <main className="flex-1 p-4 md:p-6 space-y-5 pb-24">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-bold">Sale Vendors</h1>
             <p className="text-masala-brown/60 text-sm">Track sales to vendors</p>
           </div>
-          <button onClick={() => { setShowAdd(true); setEditingId(null); }} className="btn-primary flex items-center gap-1">
+          <button onClick={() => { resetForm(); setShowAdd(true); }} className="btn-primary flex items-center gap-1.5">
             <Plus size={16} /> Add Entry
           </button>
         </div>
@@ -233,7 +251,7 @@ export default function SaleVendorsPage() {
         {vendorSummaries.length > 0 && (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {vendorSummaries.map((v) => (
-              <div key={v.name} className="card p-4">
+              <div key={v.name} className="card-interactive p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <div className="w-10 h-10 rounded-full bg-masala-gradient flex items-center justify-center text-masala-gold font-bold">
@@ -268,11 +286,11 @@ export default function SaleVendorsPage() {
                   >
                     <Eye size={14} /> {viewingVendor === v.name ? "Show All" : "View History"}
                   </button>
-                  {v.remaining > 0 && rows.find((r) => r.vendor_name === v.name)?.whatsapp_number && (
+                  {v.remaining > 0 && v.whatsapp_number && (
                     <button
-                      onClick={() => sendFollowUpWhatsApp(rows.find((r) => r.vendor_name === v.name)!)}
+                      onClick={() => sendFollowUpWhatsApp(v.name, v.remaining, v.whatsapp_number!)}
                       className="px-3 py-2 rounded-lg bg-green-50 text-green-700 hover:bg-green-100"
-                      title="Send reminder"
+                      title="Send WhatsApp reminder"
                     >
                       <Send size={14} />
                     </button>
@@ -285,57 +303,63 @@ export default function SaleVendorsPage() {
 
         {/* Add/Edit entry modal */}
         {showAdd && (
-          <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center" onClick={() => { setShowAdd(false); setEditingId(null); }}>
-            <div className="absolute inset-0 bg-black/40" />
-            <div className="relative bg-masala-cream w-full md:max-w-sm rounded-t-2xl md:rounded-2xl p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-4">
+          <div className="sheet-overlay" onClick={() => { setShowAdd(false); resetForm(); }}>
+            <div className="sheet-panel animate-sheetUp" onClick={(e) => e.stopPropagation()}>
+              <div className="sheet-drag-handle" />
+              <div className="sheet-header">
                 <h3 className="font-bold text-lg">{editingId ? "Edit Entry" : "Add Sale Vendor Entry"}</h3>
-                <button onClick={() => { setShowAdd(false); setEditingId(null); }} className="p-1 hover:text-masala-red"><X size={20} /></button>
+                <button onClick={() => { setShowAdd(false); resetForm(); }} className="tap-target -mr-2 text-masala-brown/50 hover:text-masala-red"><X size={20} /></button>
               </div>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="sheet-body pb-6">
                 <div>
-                  <label className="text-sm font-medium">Vendor Name</label>
-                  <div className="mt-1">
-                    <NameDropdown
-                      names={uniqueVendors}
-                      value={form.vendor_name}
-                      onChange={(value) => setForm({ ...form, vendor_name: value })}
-                      placeholder="Enter or select vendor"
-                      required
-                    />
-                  </div>
+                  <label className="field-label">Vendor Name</label>
+                  <NameDropdown
+                    names={uniqueVendors}
+                    value={form.vendor_name}
+                    onChange={(value) => setForm({ ...form, vendor_name: value })}
+                    placeholder="Enter or select vendor"
+                    required
+                  />
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium">WhatsApp Number (optional)</label>
-                  <input className="input mt-1" type="tel" placeholder="e.g. 9876543210"
+                  <label className="field-label">WhatsApp Number (optional)</label>
+                  <input className="input" type="tel" placeholder="e.g. 9876543210"
                     value={form.whatsapp_number} onChange={(e) => setForm({ ...form, whatsapp_number: e.target.value })} />
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium">Description (optional)</label>
-                  <textarea className="input mt-1" rows={2} placeholder="What was sold..."
+                  <label className="field-label">Description (optional)</label>
+                  <textarea className="input" rows={2} placeholder="What was sold..."
                     value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium">Bill No. (optional)</label>
-                  <input className="input mt-1" type="text" placeholder="e.g. INV-001"
-                    value={form.bill_no} onChange={(e) => setForm({ ...form, bill_no: e.target.value })} />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="field-label">Bill No.</label>
+                    <input className="input" type="text" placeholder="INV-001"
+                      value={form.bill_no} onChange={(e) => setForm({ ...form, bill_no: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="field-label">Date</label>
+                    <input className="input" type="date" required
+                      value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium">Total Amount (₹)</label>
-                  <input className="input mt-1" type="number" min="0" step="0.01" placeholder="0.00"
-                    value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
-                  <p className="text-xs text-masala-brown/50 mt-1">Leave empty or 0 if only recording a payment</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="field-label">Total Amount (₹)</label>
+                    <input className="input" type="number" min="0" step="0.01" placeholder="0.00"
+                      value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="field-label">Paid Amount (₹) *</label>
+                    <input className="input" type="number" min="0" step="0.01" placeholder="0.00" required
+                      value={form.paid_amount} onChange={(e) => setForm({ ...form, paid_amount: e.target.value })} />
+                  </div>
                 </div>
-
-                <div>
-                  <label className="text-sm font-medium">Paid Amount (₹) *</label>
-                  <input className="input mt-1" type="number" min="0" step="0.01" placeholder="0.00" required
-                    value={form.paid_amount} onChange={(e) => setForm({ ...form, paid_amount: e.target.value })} />
-                </div>
+                <p className="text-xs text-masala-brown/50 -mt-2">Leave total empty/0 if only recording a payment</p>
 
                 {form.vendor_name && (() => {
                   const vendorRows = rows.filter(r => r.vendor_name === form.vendor_name);
@@ -344,9 +368,9 @@ export default function SaleVendorsPage() {
                   const remaining = total - paid;
                   if (remaining > 0) {
                     return (
-                      <div className="p-3 bg-masala-red/5 border border-masala-red/20 rounded-lg">
+                      <div className="p-2.5 bg-masala-red/5 border border-masala-red/20 rounded-lg flex items-center justify-between">
                         <p className="text-xs text-masala-brown/60">Previous Balance</p>
-                        <p className="text-lg font-bold text-masala-red">₹{remaining.toLocaleString("en-IN")}</p>
+                        <p className="text-base font-bold text-masala-red">₹{remaining.toLocaleString("en-IN")}</p>
                       </div>
                     );
                   }
@@ -354,8 +378,8 @@ export default function SaleVendorsPage() {
                 })()}
 
                 <div>
-                  <label className="text-sm font-medium">Status</label>
-                  <div className="grid grid-cols-3 gap-2 mt-1">
+                  <label className="field-label">Status</label>
+                  <div className="grid grid-cols-3 gap-2">
                     {(["unpaid", "partial", "paid"] as const).map((s) => (
                       <button
                         key={s}
@@ -377,13 +401,7 @@ export default function SaleVendorsPage() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium">Date</label>
-                  <input className="input mt-1" type="date" required
-                    value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
-                </div>
-
-                <button className="btn-primary w-full py-3" disabled={saving}>
+                <button className="btn-primary w-full" disabled={saving}>
                   {saving ? "Saving..." : editingId ? "Update Entry" : "Add Entry"}
                 </button>
               </form>
@@ -393,29 +411,31 @@ export default function SaleVendorsPage() {
 
         {/* WhatsApp notification after adding entry */}
         {showWhatsAppPrompt && lastEntry && lastEntry.whatsapp_number && (
-          <div className="card p-4 border-2 border-green-200 bg-green-50/50">
+          <div className="card p-4 border-2 border-green-200 bg-green-50/50 animate-pop">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
                 <Check size={20} className="text-green-700" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-green-900 mb-1">Entry added successfully!</h3>
+                <h3 className="font-semibold text-green-900 mb-1">नोंद यशस्वीरित्या जतन झाली!</h3>
                 <p className="text-sm text-green-700 mb-3">
-                  Sale to {lastEntry.vendor_name} for ₹{lastEntry.amount.toLocaleString("en-IN")}
-                  {lastEntry.status === "unpaid" && " • Status: Unpaid"}
+                  {lastEntry.vendor_name} यांना ₹{lastEntry.amount.toLocaleString("en-IN")} ची विक्री जोडली
+                  {lastRemaining > 0 && ` • बाकी: ₹${lastRemaining.toLocaleString("en-IN")}`}
                 </p>
-                <button
-                  onClick={() => { sendWhatsApp(lastEntry); setShowWhatsAppPrompt(false); }}
-                  className="btn-primary bg-green-600 hover:bg-green-700 flex items-center gap-2"
-                >
-                  <MessageCircle size={18} /> Send WhatsApp Notification
-                </button>
-                <button
-                  onClick={() => setShowWhatsAppPrompt(false)}
-                  className="ml-2 px-4 py-2 text-sm text-masala-brown/60 hover:text-masala-brown"
-                >
-                  Skip
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => { sendWhatsApp(lastEntry, lastRemaining); setShowWhatsAppPrompt(false); }}
+                    className="btn-primary bg-green-600 hover:bg-green-700 flex items-center gap-2"
+                  >
+                    <MessageCircle size={18} /> WhatsApp पाठवा
+                  </button>
+                  <button
+                    onClick={() => setShowWhatsAppPrompt(false)}
+                    className="px-4 py-2 text-sm text-masala-brown/60 hover:text-masala-brown"
+                  >
+                    नंतर
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -434,7 +454,7 @@ export default function SaleVendorsPage() {
                 </button>
               )}
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto no-scrollbar">
               <table className="data-table w-full min-w-[500px]">
                 <thead>
                   <tr>
@@ -484,7 +504,11 @@ export default function SaleVendorsPage() {
                             </button>
                             {r.whatsapp_number && (
                               <button
-                                onClick={() => sendFollowUpWhatsApp(r)}
+                                onClick={() => {
+                                  const vendorTotal = vendorMap.get(r.vendor_name);
+                                  const remaining = vendorTotal ? vendorTotal.total - vendorTotal.paid : balance;
+                                  sendFollowUpWhatsApp(r.vendor_name, remaining, r.whatsapp_number!);
+                                }}
                                 className="p-1.5 rounded-md hover:bg-green-50 text-masala-brown/60 hover:text-green-700"
                                 title="Send reminder"
                               >
@@ -505,7 +529,7 @@ export default function SaleVendorsPage() {
         {rows.length === 0 && (
           <div className="text-center py-12 text-masala-brown/50">
             <p>No sale vendor entries yet.</p>
-            <button onClick={() => { setShowAdd(true); setEditingId(null); }} className="btn-primary mt-4 inline-flex items-center gap-1">
+            <button onClick={() => { resetForm(); setShowAdd(true); }} className="btn-primary mt-4 inline-flex items-center gap-1">
               <Plus size={16} /> Add your first entry
             </button>
           </div>
