@@ -1,68 +1,244 @@
-# Deployment guide — GitHub Actions → Vercel + Supabase
+# 🌶️ Mayur Masala Center
 
-This wires up **CI/CD**: every PR gets a Vercel preview URL, every merge to `main` builds, deploys to production, pushes DB migrations, and re-registers the Telegram webhook — fully automated.
+A **progressive web app (PWA)** for managing daily business operations of a masala (spice) wholesale/retail business — sales, expenses, purchases, attendance, lending, and vendor tracking — all with **WhatsApp integration** and a **Telegram bot** for quick logging.
 
----
-## 1. One-time: create the GitHub repo
-```bash
-cd mayur-masala
-git init
-git add .
-git commit -m "Initial scaffold"
-gh repo create mayur-masala --private --source=. --push
-# or: create on github.com, then
-git remote add origin https://github.com/<you>/mayur-masala.git
-git push -u origin main
-```
-
-## 2. One-time: create the Supabase project
-1. https://supabase.com/dashboard → New Project → note the **Project URL**, **anon key**, **service_role key**.
-2. SQL Editor → paste and run `supabase/migrations/0001_init.sql`.
-3. Authentication → Users → **Add user** (create your staff logins directly, no signup).
-4. Table Editor → `allowed_telegram_users` → insert your Telegram numeric ID (get it from **@userinfobot**).
-5. Settings → Database → copy the **connection string** (needed for `SUPABASE_DB_URL` secret below).
-
-## 3. One-time: create the Vercel project
-1. https://vercel.com → New Project → Import the `mayur-masala` GitHub repo.
-2. Framework preset: Next.js (auto-detected). Deploy once manually to generate the project — GitHub Actions will take over after.
-3. Project Settings → note the **Project ID** and **Org/Team ID** (Settings → General).
-4. Account Settings → Tokens → create a **Vercel API token**.
-5. **Important**: under Project Settings → Git, disable Vercel's own auto-deploy-on-push (toggle off "Deploy Hooks" from Git integration) so it doesn't double-deploy alongside GitHub Actions. Skip this if you'd rather let Vercel's native integration handle it instead of Actions — see note at the bottom.
-
-## 4. One-time: create the Telegram bot
-1. Message **@BotFather** → `/newbot` → copy the token.
-
-## 5. Add GitHub Actions secrets
-Repo → Settings → Secrets and variables → Actions → New repository secret:
-
-For a description of the Bot API, see this page: https://core.telegram.org/bots/api
-| Secret | Where to get it |
-|---|---|
-| `VERCEL_TOKEN` | Vercel → Account Settings → Tokens |
-| `VERCEL_ORG_ID` | Vercel → Project Settings → General |
-| `VERCEL_PROJECT_ID` | Vercel → Project Settings → General |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → API |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Project Settings → API |
-| `SUPABASE_DB_URL` | Supabase → Project Settings → Database → Connection string (URI, use the pooler one) |
-| `TELEGRAM_BOT_TOKEN` | From BotFather |
-
-Also add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `TELEGRAM_BOT_TOKEN` as **Environment Variables in Vercel itself** (Project Settings → Environment Variables) — the app reads them at runtime; GitHub secrets only feed the Actions build/deploy steps.
-
-## 6. Push and watch it deploy
-```bash
-git push origin main
-```
-Go to the repo's **Actions** tab → `Deploy to Vercel` workflow runs:
-1. `lint-and-build` — installs deps, lints, builds
-2. `deploy-production` — deploys to Vercel prod, runs `supabase db push` for any new migrations, re-sets the Telegram webhook to the live URL
-
-Open a PR instead of pushing directly to `main` → you'll get a `deploy-preview` job that comments the preview URL on the PR.
-
-## 7. Verify
-- Visit the production URL → log in with the Supabase user you created.
-- Message your Telegram bot: `/sale 500 Test - checking bot` → should reply `✅ Logged sale: ₹500`.
-- `/summary` → should show today's totals.
+Built with **Next.js 14 (App Router)**, **Supabase**, **Tailwind CSS**, and deployed via **GitHub Actions → Vercel**.
 
 ---
-### Note: Actions-based vs Vercel-native deploys
-This workflow deploys **via the Vercel CLI inside GitHub Actions**, which gives you the migration + webhook automation in the same pipeline. If you'd rather keep it simpler, you can instead just use **Vercel's native GitHub integration** (auto-deploy on push, zero YAML) and drop this workflow — but then DB migrations and the Telegram webhook update have to be run manually after each deploy. The `deploy.yml` above is the one-command, fully automated option.
+
+## ✨ Features
+
+### 📊 Dashboard
+- KPI cards showing today's sales, expenses, and net profit
+- Monthly trend chart (sales, purchases, expenses)
+- Recent transactions table with edit/delete
+- Quick-add FAB for fast entry
+
+### 💰 Sales / Expenses / Purchases
+- Add, edit, delete transactions
+- Filter by month, year, financial year, or all time
+- Category-based tracking
+- Running totals per period
+
+### 📋 Attendance
+- Monthly calendar grid view
+- Mark staff as Present / Absent / Half-day
+- Add/remove staff members
+- Monthly summary with present count per staff
+
+### 📈 Profit & Loss
+- Monthly and yearly P&L breakdown
+- Net profit/loss calculation (Sales - Purchases - Expenses)
+- Color-coded positive/negative values
+
+### 🤝 Lending Tracker
+- Track money lent to and settled by people
+- Person-wise summary with remaining balance
+- WhatsApp reminders for pending amounts
+- Days since last transaction per person
+
+### 🏪 Sale Vendors
+- Track sales made to vendors
+- Vendor-wise summary with total, paid, remaining
+- WhatsApp notifications for new entries
+- Follow-up reminders via WhatsApp
+- Bill number tracking
+- Partial payment support
+
+### 🛒 Purchase Vendors
+- Track purchases made from vendors
+- Vendor-wise summary with total, paid, remaining
+- Bill number tracking
+- Partial payment support
+
+### 🤖 Telegram Bot
+- Quick log sales via Telegram: `/sale 500 Item description`
+- Daily summary: `/summary`
+- Webhook auto-registered on deploy
+
+### 📱 PWA
+- Installable on mobile home screen
+- Offline-capable (static export)
+- Apple touch icon & splash screen support
+- Portrait-optimized
+
+---
+
+## 🏗️ Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Framework** | Next.js 14 (App Router) |
+| **Language** | TypeScript |
+| **Styling** | Tailwind CSS + custom design system |
+| **Backend / Auth** | Supabase (PostgreSQL, Auth, REST API) |
+| **Charts** | Recharts |
+| **Icons** | Lucide React |
+| **Deployment** | Vercel (static export) |
+| **CI/CD** | GitHub Actions |
+| **Bot** | Telegram Bot API |
+| **Infrastructure** | Terraform (optional) |
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js 18+
+- A Supabase project (free tier works)
+- A Telegram bot token (from @BotFather)
+
+### 1. Clone & install
+```bash
+git clone https://github.com/Prasadpb77/mayurmasala.git
+cd mayurmasala
+npm install
+```
+
+### 2. Environment variables
+Create `.env.local`:
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+SUPABASE_DB_URL=your_supabase_database_connection_string
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+```
+
+### 3. Database setup
+Run the migration files in `supabase/migrations/` in order:
+1. `0001_init.sql` — core tables (sales, purchases, expenses)
+2. `0002_attendance.sql` — staff & attendance tables
+3. `0003_lending.sql` — lending/borrowing tables
+4. `0004_add_whatsapp.sql` — WhatsApp number columns
+5. `0005_sale_vendors.sql` — sale vendors table
+6. `0006_purchase_vendors.sql` — purchase vendors table
+7. `0007_partial_payments.sql` — partial payment support
+8. `0008_fix_amount_check.sql` — amount validation fix
+9. `0009_update_views_for_purchase_vendors.sql` — DB views
+10. `0010_add_bill_no.sql` — bill number tracking
+
+### 4. Run dev server
+```bash
+npm run dev
+```
+
+### 5. Build for production
+```bash
+npm run build
+```
+
+---
+
+## 🗺️ Project Structure
+
+```
+mayurmasala/
+├── app/                          # Next.js App Router pages
+│   ├── layout.tsx                # Root layout (PWA meta tags)
+│   ├── page.tsx                  # Root redirect
+│   ├── globals.css               # Global styles + design system
+│   ├── manifest.ts               # PWA manifest
+│   ├── login/                    # Login page
+│   ├── dashboard/                # Main dashboard
+│   ├── sales/                    # Sales transactions
+│   ├── expenses/                 # Expense transactions
+│   ├── attendance/               # Staff attendance
+│   ├── profit-loss/              # P&L reports
+│   ├── lending/                  # Lending tracker
+│   ├── sale-vendors/             # Sale vendor management
+│   └── purchase-vendors/         # Purchase vendor management
+├── components/                   # Reusable UI components
+│   ├── Nav.tsx                   # Navigation (desktop sidebar + mobile bottom bar)
+│   ├── TxnPage.tsx               # Shared transaction page (sales/expenses)
+│   ├── DataTable.tsx             # Reusable data table
+│   ├── KpiCard.tsx               # KPI metric card
+│   ├── TrendChart.tsx            # Monthly trend line chart
+│   ├── QuickAdd.tsx              # Floating quick-add button + form
+│   └── NameDropdown.tsx          # Autocomplete dropdown for names
+├── lib/                          # Utility libraries
+│   ├── finance.ts                # Financial year & INR formatting
+│   └── supabase/                 # Supabase client (client & server)
+├── supabase/
+│   └── migrations/               # Database migration files
+├── terraform/                    # Optional Terraform config
+└── .github/workflows/deploy.yml  # CI/CD pipeline
+```
+
+---
+
+## 🎨 Design System
+
+The app uses a custom "Masala" design system inspired by spice packet colors:
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `masala-red` | `#B4182A` | Primary brand color |
+| `masala-redBright` | `#E8283F` | Active states, glows |
+| `masala-gold` | `#F2B90B` | Accent, highlights |
+| `masala-brown` | `#3B1F14` | Text, dark surfaces |
+| `masala-cream` | `#FDF6E3` | Page background |
+
+### Components
+- **Card** — Glassmorphism with backdrop blur
+- **KPI Card** — Gradient with icon overlay
+- **Bottom Nav** — Floating glass tab bar (mobile)
+- **Sheet** — Bottom sheet modal system
+- **Segmented Button** — Pill-style toggle groups
+
+---
+
+## 🤖 Telegram Bot Commands
+
+| Command | Description |
+|---------|-------------|
+| `/sale <amount> <description>` | Log a sale |
+| `/summary` | Get today's summary |
+| `/start` | Welcome message |
+
+The bot webhook is automatically registered on each deploy.
+
+---
+
+## 🚢 Deployment
+
+### CI/CD Pipeline (GitHub Actions → Vercel)
+Every push to `main` triggers:
+1. **Lint & Build** — TypeScript check + Next.js build
+2. **Deploy to Vercel** — Static export to production
+3. **DB Migration** — `supabase db push` for new migrations
+4. **Telegram Webhook** — Re-registers bot webhook
+
+Pull requests get a preview deployment with auto-comment.
+
+### Manual Deploy
+```bash
+npm run build
+npx vercel --prod
+```
+
+---
+
+## 🔧 Configuration
+
+### Supabase
+- Auth: Email/password authentication
+- RLS: Row-level security enabled on all tables
+- Migrations: Version-controlled in `supabase/migrations/`
+
+### PWA
+- Manifest: `app/manifest.ts`
+- Service worker: Handled by Next.js static export
+- Icons: Inline SVG data URIs (no external image files needed)
+
+---
+
+## 📄 License
+
+Private — internal business tool.
+
+---
+
+## 👤 Author
+
+**Prasad Bhavsar**
