@@ -83,9 +83,12 @@ export default function DashboardPage() {
     <div className="flex flex-col md:flex-row min-h-screen">
       <Nav />
       <main className="flex-1 p-4 md:p-6 space-y-5 pb-24">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold">Overview</h1>
-          <p className="text-masala-brown/60 text-xs md:text-sm">Financial year {fy}</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold">Overview</h1>
+            <p className="text-masala-brown/60 text-xs md:text-sm">Financial year {fy}</p>
+          </div>
+          <QuickAdd />
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           <KpiCard label="This month — Sales" value={monthSale} icon={TrendingUp} />
@@ -95,7 +98,6 @@ export default function DashboardPage() {
         </div>
         <TrendChart data={chartData as any} />
         <DataTable rows={recent as any} title="Recent transactions" />
-        <QuickAdd />
       </main>
     </div>
   );

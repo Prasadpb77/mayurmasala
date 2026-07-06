@@ -63,10 +63,10 @@ export default function QuickAdd({ onDone }: { onDone?: () => void }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-4 z-50 w-14 h-14 rounded-full bg-masala-red text-white shadow-xl hover:bg-masala-redDeep transition-colors flex items-center justify-center"
+        className="w-10 h-10 rounded-full bg-masala-red text-white shadow-lg hover:bg-masala-redDeep transition-colors flex items-center justify-center flex-shrink-0"
         title="Quick add"
       >
-        <Plus size={28} />
+        <Plus size={22} />
       </button>
 
       {open && (
