@@ -137,6 +137,7 @@ export default function PurchaseVendorsPage() {
       vendor_name: "",
       whatsapp_number: "",
       description: "",
+      bill_no: "",
       amount: "",
       paid_amount: "",
       status: "unpaid",
