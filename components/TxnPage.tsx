@@ -25,6 +25,10 @@ export default function TxnPage({ type, title }: { type: Txn; title: string }) {
   const [saving, setSaving] = useState(false);
   const [total, setTotal] = useState(0);
   const [editingId, setEditingId] = useState<number | null>(null);
+  // Additional filters
+  const [selectedMonth, setSelectedMonth] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
 
   function rangeStart() {
     const now = new Date();
@@ -109,6 +113,55 @@ export default function TxnPage({ type, title }: { type: Txn; title: string }) {
               {r === "fy" ? "Financial Year" : r[0].toUpperCase() + r.slice(1)}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* Filter Bar — Month dropdown + Date range */}
+      <div className="card p-3 md:p-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex-1 min-w-[140px]">
+            <label className="field-label">Month</label>
+            <select
+              className="input"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+            >
+              <option value="all">All Months</option>
+              {Array.from({ length: 12 }, (_, i) => {
+                const d = new Date();
+                d.setMonth(d.getMonth() - i);
+                const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+                const label = d.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+                return <option key={ym} value={ym}>{label}</option>;
+              })}
+            </select>
+          </div>
+          <div className="flex-1 min-w-[130px]">
+            <label className="field-label">From Date</label>
+            <input
+              className="input"
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+            />
+          </div>
+          <div className="flex-1 min-w-[130px]">
+            <label className="field-label">To Date</label>
+            <input
+              className="input"
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+            />
+          </div>
+          {(selectedMonth !== "all" || dateFrom || dateTo) && (
+            <button
+              onClick={() => { setSelectedMonth("all"); setDateFrom(""); setDateTo(""); }}
+              className="btn-ghost text-xs h-[42px]"
+            >
+              Clear Filters
+            </button>
+          )}
         </div>
       </div>
 

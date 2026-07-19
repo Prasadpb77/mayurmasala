@@ -43,6 +43,10 @@ export default function SaleVendorsPage() {
   const [lastEntry, setLastEntry] = useState<VendorRow | null>(null);
   const [lastRemaining, setLastRemaining] = useState(0);
   const [showWhatsAppPrompt, setShowWhatsAppPrompt] = useState(false);
+  // Filters
+  const [selectedMonth, setSelectedMonth] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
 
   // Auto-fill vendor details when vendor name changes
   useEffect(() => {
@@ -228,8 +232,39 @@ export default function SaleVendorsPage() {
     whatsapp_number: data.whatsapp_number,
   })).sort((a, b) => b.remaining - a.remaining);
 
+  // Compute filtered rows based on month/date filters
+  const filteredRowsForKpi = rows.filter((r) => {
+    if (selectedMonth !== "all") {
+      const d = new Date(r.date);
+      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      if (ym !== selectedMonth) return false;
+    }
+    if (dateFrom && r.date < dateFrom) return false;
+    if (dateTo && r.date > dateTo) return false;
+    return true;
+  });
+
+  // KPI totals (from filtered rows)
+  const totalAmount = filteredRowsForKpi.reduce((s, r) => s + r.amount, 0);
+  const totalPaid = filteredRowsForKpi.reduce((s, r) => s + r.paid_amount, 0);
+  const remainingAmount = totalAmount - totalPaid;
+
   const uniqueVendors = Array.from(new Set(rows.map((r) => r.vendor_name))).sort();
   const filteredRows = viewingVendor ? rows.filter((r) => r.vendor_name === viewingVendor) : rows;
+
+  // Build month options from data
+  const monthOptions = new Set<string>();
+  rows.forEach((r) => {
+    const d = new Date(r.date);
+    monthOptions.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  });
+  const sortedMonths = Array.from(monthOptions).sort().reverse();
+  const monthLabels: Record<string, string> = {};
+  sortedMonths.forEach((m) => {
+    const [y, mo] = m.split("-");
+    const date = new Date(Number(y), Number(mo) - 1);
+    monthLabels[m] = date.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+  });
 
   if (loading) return <div className="flex items-center justify-center min-h-screen"><p className="text-masala-brown/50">Loading...</p></div>;
 
@@ -245,6 +280,75 @@ export default function SaleVendorsPage() {
           <button onClick={() => { resetForm(); setShowAdd(true); }} className="btn-primary flex items-center gap-1.5">
             <Plus size={16} /> Add Entry
           </button>
+        </div>
+
+        {/* KPI Cards — Total Sale Amount, Total Amount Received, Amount Yet to Receive */}
+        {rows.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="kpi-card">
+              <p className="text-xs uppercase tracking-wide text-masala-gold/90 font-semibold">
+                Total Sale Amount
+              </p>
+              <p className="text-3xl font-bold mt-1">{inr(totalAmount)}</p>
+            </div>
+            <div className="kpi-card">
+              <p className="text-xs uppercase tracking-wide text-masala-gold/90 font-semibold">
+                Total Amount Received
+              </p>
+              <p className="text-3xl font-bold mt-1">{inr(totalPaid)}</p>
+            </div>
+            <div className="kpi-card">
+              <p className="text-xs uppercase tracking-wide text-masala-gold/90 font-semibold">
+                Amount Yet to Receive
+              </p>
+              <p className="text-3xl font-bold mt-1">{inr(remainingAmount)}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Filter Bar */}
+        <div className="card p-3 md:p-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex-1 min-w-[140px]">
+              <label className="field-label">Month</label>
+              <select
+                className="input"
+                value={selectedMonth}
+                onChange={(e) => { setSelectedMonth(e.target.value); setViewingVendor(null); }}
+              >
+                <option value="all">All Months</option>
+                {sortedMonths.map((m) => (
+                  <option key={m} value={m}>{monthLabels[m]}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex-1 min-w-[130px]">
+              <label className="field-label">From Date</label>
+              <input
+                className="input"
+                type="date"
+                value={dateFrom}
+                onChange={(e) => { setDateFrom(e.target.value); setViewingVendor(null); }}
+              />
+            </div>
+            <div className="flex-1 min-w-[130px]">
+              <label className="field-label">To Date</label>
+              <input
+                className="input"
+                type="date"
+                value={dateTo}
+                onChange={(e) => { setDateTo(e.target.value); setViewingVendor(null); }}
+              />
+            </div>
+            {(selectedMonth !== "all" || dateFrom || dateTo) && (
+              <button
+                onClick={() => { setSelectedMonth("all"); setDateFrom(""); setDateTo(""); }}
+                className="btn-ghost text-xs h-[42px]"
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Vendor-wise widgets */}
